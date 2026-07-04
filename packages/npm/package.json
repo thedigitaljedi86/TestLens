@@ -1,0 +1,42 @@
+{
+  "name": "testlens",
+  "version": "0.1.0",
+  "description": "Discover, run and track automated tests across C#, Vue and Angular projects - with a beautiful self-contained HTML report, full run history, trends and highlights.",
+  "keywords": [
+    "testing",
+    "test-report",
+    "dashboard",
+    "ci",
+    "quality",
+    "vue",
+    "angular",
+    "dotnet",
+    "xunit",
+    "nunit",
+    "mstest",
+    "jest",
+    "vitest",
+    "karma"
+  ],
+  "homepage": "https://github.com/thedigitaljedi86/TestLens#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thedigitaljedi86/TestLens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thedigitaljedi86/TestLens/issues"
+  },
+  "license": "MIT",
+  "author": "IT Performance ApS",
+  "bin": {
+    "testlens": "bin/testlens.js"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
