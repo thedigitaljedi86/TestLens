@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en" data-mode="auto" data-accent="ocean">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TestLens Report</title>
+<style>
+  /* ---------- design tokens ---------- */
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --shadow: 0 1px 2px rgba(11,11,11,.04), 0 4px 16px rgba(11,11,11,.05);
+
+    /* validated series colors (light surface) */
+    --s-total: #2a78d6;
+    --s-pass: #0ca30c;
+    --s-fail: #d03b3b;
+
+    /* status */
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warn: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  :root[data-accent="ocean"]  { --accent: #2a78d6; --accent-ink: #ffffff; }
+  :root[data-accent="violet"] { --accent: #4a3aa7; --accent-ink: #ffffff; }
+  :root[data-accent="teal"]   { --accent: #0e8f64; --accent-ink: #ffffff; }
+
+  :root[data-mode="dark"] {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+    --s-total: #3987e5;
+    --good-text: #0ca30c;
+  }
+  :root[data-mode="dark"][data-accent="ocean"]  { --accent: #3987e5; }
+  :root[data-mode="dark"][data-accent="violet"] { --accent: #9085e9; --accent-ink: #14113a; }
+  :root[data-mode="dark"][data-accent="teal"]   { --accent: #1baf7a; --accent-ink: #05231a; }
+
+  @media (prefers-color-scheme: dark) {
+    :root[data-mode="auto"] {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+      --s-total: #3987e5;
+      --good-text: #0ca30c;
+    }
+    :root[data-mode="auto"][data-accent="ocean"]  { --accent: #3987e5; }
+    :root[data-mode="auto"][data-accent="violet"] { --accent: #9085e9; --accent-ink: #14113a; }
+    :root[data-mode="auto"][data-accent="teal"]   { --accent: #1baf7a; --accent-ink: #05231a; }
+  }
+
+  /* ---------- base ---------- */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- topbar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--page) 85%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner { display: flex; align-items: center; gap: 16px; padding: 12px 24px; max-width: 1240px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px; letter-spacing: -.01em; }
+  .brand svg { display: block; }
+  .brand .ver { font-weight: 450; color: var(--muted); font-size: 12px; margin-left: 2px; }
+  .root-path {
+    color: var(--ink-2); font-size: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 999px;
+    max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .top-spacer { flex: 1; }
+
+  .seg {
+    display: inline-flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 3px; gap: 2px;
+  }
+  .seg button {
+    border: 0; background: transparent; color: var(--ink-2); cursor: pointer;
+    border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px; line-height: 1.2;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .swatches { display: inline-flex; gap: 6px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; }
+  .swatches button {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;
+  }
+  .swatches button[aria-pressed="true"] { border-color: var(--ink); }
+  .sw-ocean { background: #2a78d6; } .sw-violet { background: #7b6fe0; } .sw-teal { background: #13a173; }
+
+  /* ---------- controls row ---------- */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    margin: 22px 0 18px;
+  }
+  .controls label.field { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
+  select {
+    appearance: none; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 34px 8px 12px; font: inherit; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .scrubber {
+    flex: 1; min-width: 320px; display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 14px; box-shadow: var(--shadow);
+  }
+  .scrubber .btn {
+    border: 1px solid var(--border); background: transparent; color: var(--ink);
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+  }
+  .scrubber .btn:disabled { opacity: .35; cursor: default; }
+  .scrubber input[type="range"] { flex: 1; accent-color: var(--accent); height: 20px; margin: 0; }
+  .run-meta { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+  .run-meta strong { color: var(--ink); font-weight: 600; }
+  .run-label-chip {
+    background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+    border-radius: 999px; padding: 1px 9px; font-size: 11.5px; font-weight: 600; margin-left: 6px;
+  }
+  .latest-note { color: var(--muted); font-size: 12px; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px 12px; box-shadow: var(--shadow); min-width: 0; overflow: hidden;
+  }
+  .tile .t-label { color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .tile .t-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .tile .t-value { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; }
+  .tile .t-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 2px; min-height: 26px; }
+  .delta { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .delta.up-good   { color: var(--good-text); background: color-mix(in srgb, var(--good) 14%, transparent); }
+  .delta.down-bad  { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+  .delta.flat      { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  .spark { flex: none; }
+
+  /* ---------- cards & layout ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 18px 20px;
+  }
+  .card h2 { margin: 0 0 2px; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+  .card .sub { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ---------- chart ---------- */
+  .chart-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .line-key { width: 18px; height: 0; border-top: 2.5px solid; border-radius: 2px; display: inline-block; }
+  .chart-box { position: relative; }
+  .chart-box svg { display: block; width: 100%; height: auto; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 9px 12px; min-width: 150px; font-size: 12.5px;
+  }
+  .tooltip .tt-title { color: var(--muted); font-size: 11.5px; margin-bottom: 5px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+  .tooltip .tt-key { width: 14px; height: 0; border-top: 2.5px solid; border-radius: 2px; flex: none; }
+  .tooltip .tt-val { font-weight: 650; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .tooltip .tt-name { color: var(--ink-2); }
+  .chart-hint { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
+
+  /* ---------- highlights ---------- */
+  .high-list { display: flex; flex-direction: column; gap: 10px; }
+  .high {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+  }
+  .high .h-emoji { font-size: 18px; flex: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .high .h-body { min-width: 0; }
+  .high .h-title { font-size: 11.5px; color: var(--muted); }
+  .high .h-project { font-weight: 650; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .high .h-value { margin-left: auto; font-weight: 650; font-size: 14px; white-space: nowrap; color: var(--ink); }
+  .high .h-value.pos { color: var(--good-text); }
+  .high .h-value.neg { color: var(--critical); }
+
+  /* ---------- table ---------- */
+  .table-card { margin-bottom: 20px; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: right; padding: 8px 6px; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    color: var(--muted); font-weight: 550; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 1px solid var(--grid);
+  }
+  tbody tr { border-bottom: 1px solid var(--grid); cursor: pointer; }
+  tbody tr:last-child { border-bottom: 0; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  tbody tr.selected { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  td.num { font-variant-numeric: tabular-nums; }
+  td .proj-name { font-weight: 600; }
+  td .proj-path { color: var(--muted); font-size: 11.5px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 650; border-radius: 999px; padding: 2px 9px;
+    border: 1px solid var(--border); color: var(--ink-2);
+  }
+  .badge.csharp  { background: color-mix(in srgb, #4a3aa7 12%, transparent); }
+  .badge.vue     { background: color-mix(in srgb, #1baf7a 14%, transparent); }
+  .badge.angular { background: color-mix(in srgb, #d03b3b 12%, transparent); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.pass { color: var(--good-text); background: color-mix(in srgb, var(--good) 13%, transparent); }
+  .pill.fail { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+  .pill.err  { color: var(--serious); background: color-mix(in srgb, var(--serious) 14%, transparent); }
+  .pill.norun { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  .meter { display: inline-block; width: 60px; height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--s-pass) 18%, transparent); overflow: hidden; vertical-align: middle; }
+  .meter > i { display: block; height: 100%; border-radius: 999px; background: var(--s-pass); }
+  .fail-count { color: var(--critical); font-weight: 650; }
+  .zero { color: var(--muted); }
+
+  /* ---------- footer ---------- */
+  footer {
+    color: var(--muted); font-size: 12.5px; padding: 10px 0 34px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  footer .powered { color: var(--ink-2); font-weight: 550; }
+  footer .dot-sep { opacity: .5; }
+
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <circle cx="11.5" cy="11.5" r="7.5" stroke="var(--accent)" stroke-width="2.6"/>
+        <path d="M17 17 L23 23" stroke="var(--accent)" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M8.4 11.7l2.1 2.1 4-4.2" stroke="var(--good)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      TestLens <span class="ver">v__TESTLENS_VERSION__</span>
+    </div>
+    <div class="root-path" id="rootPath" title=""></div>
+    <div class="top-spacer"></div>
+    <div class="swatches" role="group" aria-label="Accent theme">
+      <button class="sw-ocean" data-accent="ocean" title="Ocean" aria-pressed="true"></button>
+      <button class="sw-violet" data-accent="violet" title="Violet" aria-pressed="false"></button>
+      <button class="sw-teal" data-accent="teal" title="Teal" aria-pressed="false"></button>
+    </div>
+    <div class="seg" role="group" aria-label="Color mode">
+      <button data-mode="auto" aria-pressed="true">Auto</button>
+      <button data-mode="light" aria-pressed="false">Light</button>
+      <button data-mode="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+  <div class="controls">
+    <label class="field">Project
+      <select id="projectSelect" aria-label="Filter by project"></select>
+    </label>
+    <div class="scrubber" aria-label="Run timeline scrubber">
+      <button class="btn" id="prevRun" title="Previous run" aria-label="Previous run">‹</button>
+      <input type="range" id="runSlider" min="0" max="0" value="0" step="1" aria-label="Select run">
+      <button class="btn" id="nextRun" title="Next run" aria-label="Next run">›</button>
+      <div class="run-meta" id="runMeta"></div>
+    </div>
+  </div>
+
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+  <div class="layout">
+    <section class="card">
+      <div class="chart-head">
+        <div>
+          <h2>Trend across runs</h2>
+          <p class="sub" id="chartSub"></p>
+        </div>
+        <div class="legend" id="legend" aria-hidden="false"></div>
+      </div>
+      <div class="chart-box" id="chartBox">
+        <svg id="chart" role="img" aria-label="Passed, failed and discovered tests per run"></svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+      <div class="chart-hint">Hover for values · click a run to inspect it</div>
+    </section>
+
+    <section class="card">
+      <h2>Highlights</h2>
+      <p class="sub">Across all projects, selected run</p>
+      <div class="high-list" id="highlights"></div>
+    </section>
+  </div>
+
+  <section class="card table-card">
+    <h2>Projects</h2>
+    <p class="sub" id="tableSub"></p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Project</th><th>Type</th><th>Framework</th><th>Status</th>
+            <th>Tests</th><th>Passed</th><th>Failed</th><th>Skipped</th>
+            <th>Ignored</th><th>Explicit</th><th>Commented</th>
+            <th>Pass rate</th><th>Trend</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span class="powered">Powered by IT Performance ApS</span>
+    <span class="dot-sep">·</span>
+    <span>Generated by TestLens v__TESTLENS_VERSION__</span>
+    <span class="dot-sep">·</span>
+    <span id="footRuns"></span>
+  </footer>
+</main>
+
+<script>
+/*__TESTLENS_DATA__*/
+(function () {
+  "use strict";
+
+  const RUNS = (window.TESTLENS_RUNS || []).slice()
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  const $ = (id) => document.getElementById(id);
+
+  if (!RUNS.length) {
+    $("app").innerHTML = '<div class="empty">No runs recorded yet. Run <code>testlens scan &lt;dir&gt;</code> to create one.</div>';
+    return;
+  }
+
+  /* ---------- theme ---------- */
+  const html = document.documentElement;
+  function applyPref(kind, value) {
+    html.dataset[kind] = value;
+    try { localStorage.setItem("testlens-" + kind, value); } catch (e) { /* sandboxed */ }
+    document.querySelectorAll("[data-" + kind + "]").forEach((b) => {
+      if (b.tagName === "BUTTON") b.setAttribute("aria-pressed", String(b.dataset[kind] === value));
+    });
+    render();
+  }
+  try {
+    const savedMode = localStorage.getItem("testlens-mode");
+    const savedAccent = localStorage.getItem("testlens-accent");
+    if (savedMode) html.dataset.mode = savedMode;
+    if (savedAccent) html.dataset.accent = savedAccent;
+  } catch (e) { /* sandboxed */ }
+  document.querySelectorAll(".seg button[data-mode]").forEach((b) =>
+    b.addEventListener("click", () => applyPref("mode", b.dataset.mode)));
+  document.querySelectorAll(".swatches button[data-accent]").forEach((b) =>
+    b.addEventListener("click", () => applyPref("accent", b.dataset.accent)));
+  document.querySelectorAll("[data-mode],[data-accent]").forEach((b) => {
+    if (b.tagName !== "BUTTON") return;
+    const kind = b.dataset.mode ? "mode" : "accent";
+    b.setAttribute("aria-pressed", String(b.dataset[kind] === html.dataset[kind]));
+  });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (html.dataset.mode === "auto") render();
+  });
+
+  /* ---------- data helpers ---------- */
+  const keyOf = (p) => p.path || p.name;
+  const state = { runIndex: RUNS.length - 1, project: "*" };
+
+  // Union of all projects seen in any run; latest metadata wins.
+  const projectIndex = new Map();
+  RUNS.forEach((run) => (run.projects || []).forEach((p) => projectIndex.set(keyOf(p), p)));
+  const allProjects = [...projectIndex.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  function scopedProjects(run) {
+    const list = run.projects || [];
+    return state.project === "*" ? list : list.filter((p) => keyOf(p) === state.project);
+  }
+
+  function aggregate(run) {
+    const acc = { tests: 0, ignored: 0, explicit: 0, commented: 0, passed: 0, failed: 0, skipped: 0, executed: false, projects: 0 };
+    for (const p of scopedProjects(run)) {
+      acc.projects++;
+      acc.tests += p.discovery.total;
+      acc.ignored += p.discovery.ignored;
+      acc.explicit += p.discovery.explicit;
+      acc.commented += p.discovery.commentedOut;
+      const e = p.execution;
+      if (e && e.status === "completed") {
+        acc.executed = true;
+        acc.passed += e.passed; acc.failed += e.failed; acc.skipped += e.skipped;
+      }
+    }
+    return acc;
+  }
+
+  const AGGS = () => RUNS.map(aggregate);
+
+  const fmt = (n) => n.toLocaleString("en-US");
+  const pct = (num, den) => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
+  const dateShort = (ts) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const dateFull = (ts) => new Date(ts).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  /* ---------- monotone cubic path (Fritsch–Carlson) — the soft curves ---------- */
+  function smoothPath(pts) {
+    // pts: [{x,y}] with no nulls
+    if (pts.length === 0) return "";
+    if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`;
+    const n = pts.length;
+    const dx = [], dy = [], slope = [], m = new Array(n);
+    for (let i = 0; i < n - 1; i++) {
+      dx.push(pts[i + 1].x - pts[i].x);
+      dy.push(pts[i + 1].y - pts[i].y);
+      slope.push(dy[i] / dx[i]);
+    }
+    m[0] = slope[0];
+    m[n - 1] = slope[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+      if (slope[i - 1] * slope[i] <= 0) m[i] = 0;
+      else {
+        const w1 = 2 * dx[i] + dx[i - 1], w2 = dx[i] + 2 * dx[i - 1];
+        m[i] = (w1 + w2) / (w1 / slope[i - 1] + w2 / slope[i]);
+      }
+    }
+    let d = `M${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < n - 1; i++) {
+      const c1x = pts[i].x + dx[i] / 3, c1y = pts[i].y + (m[i] * dx[i]) / 3;
+      const c2x = pts[i + 1].x - dx[i] / 3, c2y = pts[i + 1].y - (m[i + 1] * dx[i]) / 3;
+      d += `C${c1x},${c1y} ${c2x},${c2y} ${pts[i + 1].x},${pts[i + 1].y}`;
+    }
+    return d;
+  }
+
+  // Split a series with nulls into contiguous runs of points.
+  function segments(values, xOf, yOf) {
+    const segs = [];
+    let cur = [];
+    values.forEach((v, i) => {
+      if (v === null || v === undefined) { if (cur.length) segs.push(cur); cur = []; }
+      else cur.push({ x: xOf(i), y: yOf(v) });
+    });
+    if (cur.length) segs.push(cur);
+    return segs;
+  }
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, parent) {
+    const node = document.createElementNS(svgNS, name);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  /* ---------- sparkline ---------- */
+  function sparkline(values, width, height, color, selIdx) {
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", width); svg.setAttribute("height", height);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.classList.add("spark");
+    const clean = values.filter((v) => v !== null && v !== undefined);
+    if (!clean.length) return svg;
+    const max = Math.max(...clean, 1), min = Math.min(...clean, 0);
+    const pad = 3;
+    const xOf = (i) => values.length === 1 ? width / 2 : pad + (i * (width - 2 * pad)) / (values.length - 1);
+    const yOf = (v) => height - pad - ((v - min) / (max - min || 1)) * (height - 2 * pad);
+    for (const seg of segments(values, xOf, yOf)) {
+      el("path", { d: smoothPath(seg), fill: "none", stroke: color, "stroke-width": 2, "stroke-linecap": "round", opacity: 0.75 }, svg);
+    }
+    if (selIdx !== undefined && values[selIdx] !== null && values[selIdx] !== undefined) {
+      el("circle", { cx: xOf(selIdx), cy: yOf(values[selIdx]), r: 3.2, fill: color, stroke: cssVar("--surface"), "stroke-width": 2 }, svg);
+    }
+    return svg;
+  }
+
+  /* ---------- stat tiles ---------- */
+  function deltaChip(now, prev, downIsGood) {
+    if (prev === null || prev === undefined || now === null || now === undefined) return null;
+    const d = Math.round((now - prev) * 10) / 10;
+    const span = document.createElement("span");
+    span.className = "delta";
+    if (d === 0) { span.classList.add("flat"); span.textContent = "±0 vs prev"; return span; }
+    const good = downIsGood ? d < 0 : d > 0;
+    span.classList.add(good ? "up-good" : "down-bad");
+    span.textContent = (d > 0 ? "+" : "−") + fmt(Math.abs(d)) + " vs prev";
+    return span;
+  }
+
+  function tile({ label, dotColor, value, delta, spark }) {
+    const div = document.createElement("div");
+    div.className = "tile";
+    const lab = document.createElement("div"); lab.className = "t-label";
+    if (dotColor) { const dot = document.createElement("span"); dot.className = "t-dot"; dot.style.background = dotColor; lab.appendChild(dot); }
+    lab.appendChild(document.createTextNode(label));
+    const val = document.createElement("div"); val.className = "t-value"; val.textContent = value;
+    const foot = document.createElement("div"); foot.className = "t-foot";
+    if (delta) foot.appendChild(delta);
+    else { const s = document.createElement("span"); foot.appendChild(s); }
+    if (spark) foot.appendChild(spark);
+    div.append(lab, val, foot);
+    return div;
+  }
+
+  function renderTiles(aggs) {
+    const i = state.runIndex;
+    const now = aggs[i], prev = i > 0 ? aggs[i - 1] : null;
+    const box = $("tiles");
+    box.textContent = "";
+
+    const series = (f) => aggs.map(f);
+    const passRate = (a) => a.executed ? pct(a.passed, a.passed + a.failed) : null;
+
+    box.appendChild(tile({
+      label: "Tests discovered", dotColor: cssVar("--s-total"), value: fmt(now.tests),
+      delta: prev && deltaChip(now.tests, prev.tests, false),
+      spark: sparkline(series((a) => a.tests), 52, 24, cssVar("--s-total"), i),
+    }));
+    box.appendChild(tile({
+      label: "Passed", dotColor: cssVar("--s-pass"), value: now.executed ? fmt(now.passed) : "–",
+      delta: prev && now.executed && prev.executed ? deltaChip(now.passed, prev.passed, false) : null,
+      spark: sparkline(series((a) => a.executed ? a.passed : null), 52, 24, cssVar("--s-pass"), i),
+    }));
+    box.appendChild(tile({
+      label: "Failed", dotColor: cssVar("--s-fail"), value: now.executed ? fmt(now.failed) : "–",
+      delta: prev && now.executed && prev.executed ? deltaChip(now.failed, prev.failed, true) : null,
+      spark: sparkline(series((a) => a.executed ? a.failed : null), 52, 24, cssVar("--s-fail"), i),
+    }));
+    const rate = passRate(now);
+    box.appendChild(tile({
+      label: "Pass rate", value: rate === null ? "–" : rate + "%",
+      delta: prev ? deltaChip(rate, passRate(prev), false) : null,
+      spark: sparkline(series(passRate), 52, 24, cssVar("--accent"), i),
+    }));
+    box.appendChild(tile({
+      label: "Ignored", value: fmt(now.ignored),
+      delta: prev && deltaChip(now.ignored, prev.ignored, true),
+      spark: sparkline(series((a) => a.ignored), 52, 24, cssVar("--muted"), i),
+    }));
+    box.appendChild(tile({
+      label: "Explicit", value: fmt(now.explicit),
+      delta: prev && deltaChip(now.explicit, prev.explicit, true),
+      spark: sparkline(series((a) => a.explicit), 52, 24, cssVar("--muted"), i),
+    }));
+    box.appendChild(tile({
+      label: "Commented out", value: fmt(now.commented),
+      delta: prev && deltaChip(now.commented, prev.commented, true),
+      spark: sparkline(series((a) => a.commented), 52, 24, cssVar("--muted"), i),
+    }));
+  }
+
+  /* ---------- trend chart ---------- */
+  const SERIES = [
+    { id: "tests",  name: "Discovered", color: () => cssVar("--s-total"), of: (a) => a.tests },
+    { id: "passed", name: "Passed",     color: () => cssVar("--s-pass"),  of: (a) => a.executed ? a.passed : null },
+    { id: "failed", name: "Failed",     color: () => cssVar("--s-fail"),  of: (a) => a.executed ? a.failed : null },
+  ];
+
+  let chartGeom = null;
+
+  function renderChart(aggs) {
+    const svg = $("chart");
+    svg.textContent = "";
+    const box = $("chartBox");
+    const width = Math.max(box.clientWidth, 320);
+    const height = 290;
+    const pad = { l: 46, r: 18, t: 14, b: 30 };
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("width", width);
+    svg.setAttribute("height", height);
+
+    const n = RUNS.length;
+    const innerW = width - pad.l - pad.r, innerH = height - pad.t - pad.b;
+    const xOf = (i) => n === 1 ? pad.l + innerW / 2 : pad.l + (i * innerW) / (n - 1);
+    const maxVal = Math.max(1, ...aggs.flatMap((a) => SERIES.map((s) => s.of(a) ?? 0)));
+    const yStep = niceStep(maxVal * 1.08);
+    const ticks = Math.max(2, Math.ceil((maxVal * 1.08) / yStep));
+    const yMax = yStep * ticks;
+    const yOf = (v) => pad.t + innerH - (v / yMax) * innerH;
+
+    chartGeom = { xOf, n, padL: pad.l, innerW, width };
+
+    // horizontal gridlines + y ticks (clean numbers)
+    for (let t = 0; t <= ticks; t++) {
+      const v = yStep * t;
+      const y = yOf(v);
+      el("line", { x1: pad.l, x2: width - pad.r, y1: y, y2: y, stroke: t === 0 ? cssVar("--baseline") : cssVar("--grid"), "stroke-width": 1 }, svg);
+      const txt = el("text", { x: pad.l - 8, y: y + 4, "text-anchor": "end", "font-size": 11, fill: cssVar("--muted") }, svg);
+      txt.textContent = fmt(Math.round(v));
+    }
+
+    // x labels (thin out to ~8; include the time when runs share a calendar day)
+    const step = Math.max(1, Math.ceil(n / 8));
+    const sameDay = n > 1 &&
+      new Date(RUNS[0].timestamp).toDateString() === new Date(RUNS[n - 1].timestamp).toDateString();
+    for (let i = 0; i < n; i += step) {
+      const txt = el("text", { x: xOf(i), y: height - 8, "text-anchor": "middle", "font-size": 11, fill: cssVar("--muted") }, svg);
+      const d = new Date(RUNS[i].timestamp);
+      txt.textContent = sameDay
+        ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+        : dateShort(RUNS[i].timestamp);
+    }
+
+    // selected-run marker
+    const selX = xOf(state.runIndex);
+    el("line", { x1: selX, x2: selX, y1: pad.t, y2: pad.t + innerH, stroke: cssVar("--accent"), "stroke-width": 1.5, "stroke-dasharray": "1 4", "stroke-linecap": "round", opacity: 0.9 }, svg);
+
+    // area wash under "passed"
+    const passedVals = aggs.map(SERIES[1].of);
+    for (const seg of segments(passedVals, xOf, yOf)) {
+      if (seg.length < 2) continue;
+      const d = smoothPath(seg) + `L${seg[seg.length - 1].x},${yOf(0)}L${seg[0].x},${yOf(0)}Z`;
+      el("path", { d, fill: cssVar("--s-pass"), opacity: 0.09 }, svg);
+    }
+
+    // series lines + endpoint dots
+    const endLabels = [];
+    for (const s of SERIES) {
+      const vals = aggs.map(s.of);
+      const color = s.color();
+      for (const seg of segments(vals, xOf, yOf)) {
+        el("path", { d: smoothPath(seg), fill: "none", stroke: color, "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
+      }
+      let last = -1;
+      vals.forEach((v, i) => { if (v !== null && v !== undefined) last = i; });
+      if (last >= 0) {
+        el("circle", { cx: xOf(last), cy: yOf(vals[last]), r: 4, fill: color, stroke: cssVar("--surface"), "stroke-width": 2 }, svg);
+        endLabels.push({ x: xOf(last), y: yOf(vals[last]), text: fmt(vals[last]) });
+      }
+      // dot at selected run
+      const sv = vals[state.runIndex];
+      if (sv !== null && sv !== undefined && state.runIndex !== last) {
+        el("circle", { cx: selX, cy: yOf(sv), r: 4, fill: color, stroke: cssVar("--surface"), "stroke-width": 2 }, svg);
+      }
+    }
+
+    // selective direct labels at line ends, pushed apart so they never collide
+    endLabels.sort((a, b) => a.y - b.y);
+    const minGap = 14, yLo = pad.t + 9, yHi = height - pad.b - 4;
+    for (const l of endLabels) l.ly = Math.min(Math.max(l.y + 4, yLo), yHi);
+    for (let i = 1; i < endLabels.length; i++) {
+      if (endLabels[i].ly - endLabels[i - 1].ly < minGap) endLabels[i].ly = endLabels[i - 1].ly + minGap;
+    }
+    for (let i = endLabels.length - 1; i >= 0; i--) {
+      if (endLabels[i].ly > yHi) endLabels[i].ly = yHi;
+      if (i > 0 && endLabels[i].ly - endLabels[i - 1].ly < minGap) endLabels[i - 1].ly = endLabels[i].ly - minGap;
+    }
+    for (const l of endLabels) {
+      const anchorEnd = l.x + 42 > width - pad.r;
+      const txt = el("text", {
+        x: anchorEnd ? l.x - 9 : l.x + 9, y: l.ly,
+        "font-size": 11.5, "font-weight": 650, fill: cssVar("--ink-2"),
+        "text-anchor": anchorEnd ? "end" : "start",
+        "paint-order": "stroke", stroke: cssVar("--surface"), "stroke-width": 3, "stroke-linejoin": "round",
+      }, svg);
+      txt.textContent = l.text;
+    }
+
+    // crosshair
+    el("line", { id: "crosshair", x1: 0, x2: 0, y1: pad.t, y2: pad.t + innerH, stroke: cssVar("--baseline"), "stroke-width": 1, visibility: "hidden" }, svg);
+
+    // legend
+    const legend = $("legend");
+    legend.textContent = "";
+    for (const s of SERIES) {
+      const key = document.createElement("span"); key.className = "key";
+      const line = document.createElement("span"); line.className = "line-key"; line.style.borderTopColor = s.color();
+      key.append(line, document.createTextNode(s.name));
+      legend.appendChild(key);
+    }
+
+    $("chartSub").textContent = (state.project === "*" ? "All projects" : projectIndex.get(state.project).name) +
+      " · " + RUNS.length + " run" + (RUNS.length === 1 ? "" : "s");
+  }
+
+  // Smallest "nice" step (1/2/5 × 10^k) that covers the range in at most 5 ticks.
+  function niceStep(range) {
+    const rough = Math.max(range, 1) / 5;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    for (const m of [1, 2, 5, 10]) if (m * mag >= rough) return m * mag;
+    return 10 * mag;
+  }
+
+  /* chart hover: crosshair + tooltip listing every series */
+  (function attachHover() {
+    const svg = $("chart"), tip = $("tooltip"), box = $("chartBox");
+    function idxFromEvent(ev) {
+      if (!chartGeom) return null;
+      const rect = svg.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const { xOf, n } = chartGeom;
+      let best = 0, bestDist = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(xOf(i) - x);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+    svg.addEventListener("pointermove", (ev) => {
+      const i = idxFromEvent(ev);
+      if (i === null) return;
+      const aggs = AGGS();
+      const cross = document.getElementById("crosshair");
+      if (cross) {
+        cross.setAttribute("x1", chartGeom.xOf(i));
+        cross.setAttribute("x2", chartGeom.xOf(i));
+        cross.setAttribute("visibility", "visible");
+      }
+      tip.textContent = "";
+      const title = document.createElement("div"); title.className = "tt-title";
+      title.textContent = dateFull(RUNS[i].timestamp) + (RUNS[i].label ? " · " + RUNS[i].label : "");
+      tip.appendChild(title);
+      for (const s of SERIES) {
+        const v = s.of(aggs[i]);
+        const row = document.createElement("div"); row.className = "tt-row";
+        const key = document.createElement("span"); key.className = "tt-key"; key.style.borderTopColor = s.color();
+        const name = document.createElement("span"); name.className = "tt-name"; name.textContent = s.name;
+        const val = document.createElement("span"); val.className = "tt-val"; val.textContent = v === null || v === undefined ? "not run" : fmt(v);
+        row.append(key, name, val);
+        tip.appendChild(row);
+      }
+      tip.style.display = "block";
+      const boxRect = box.getBoundingClientRect();
+      let left = chartGeom.xOf(i) + 14;
+      if (left + tip.offsetWidth > boxRect.width - 4) left = chartGeom.xOf(i) - tip.offsetWidth - 14;
+      tip.style.left = Math.max(0, left) + "px";
+      tip.style.top = "18px";
+    });
+    svg.addEventListener("pointerleave", () => {
+      tip.style.display = "none";
+      const cross = document.getElementById("crosshair");
+      if (cross) cross.setAttribute("visibility", "hidden");
+    });
+    svg.addEventListener("click", (ev) => {
+      const i = idxFromEvent(ev);
+      if (i !== null) { state.runIndex = i; syncSlider(); render(); }
+    });
+  })();
+
+  /* ---------- highlights (top scorers) ---------- */
+  function renderHighlights() {
+    const list = $("highlights");
+    list.textContent = "";
+    const run = RUNS[state.runIndex];
+    const prev = state.runIndex > 0 ? RUNS[state.runIndex - 1] : null;
+    const projects = run.projects || [];
+    const executed = projects.filter((p) => p.execution && p.execution.status === "completed");
+
+    const items = [];
+    if (executed.length) {
+      const top = maxBy(executed, (p) => p.execution.passed);
+      items.push({ emoji: "🏆", title: "Most passing tests", project: top.name, value: fmt(top.execution.passed), cls: "pos" });
+
+      const rated = executed.filter((p) => p.execution.passed + p.execution.failed > 0);
+      if (rated.length) {
+        const best = maxBy(rated, (p) => p.execution.passed / (p.execution.passed + p.execution.failed));
+        items.push({ emoji: "🎯", title: "Best pass rate", project: best.name, value: pct(best.execution.passed, best.execution.passed + best.execution.failed) + "%", cls: "pos" });
+      }
+    }
+    if (prev) {
+      const prevByKey = new Map((prev.projects || []).map((p) => [keyOf(p), p]));
+      let best = null, bestScore = -Infinity;
+      for (const p of executed) {
+        const q = prevByKey.get(keyOf(p));
+        if (!q || !q.execution || q.execution.status !== "completed") continue;
+        const score = (p.execution.passed - q.execution.passed) - (p.execution.failed - q.execution.failed);
+        if (score > bestScore) { bestScore = score; best = p; }
+      }
+      if (best && bestScore > 0) {
+        items.push({ emoji: "📈", title: "Most improved since previous run", project: best.name, value: "+" + fmt(bestScore), cls: "pos" });
+      }
+    }
+    if (projects.length) {
+      const fewest = minBy(projects, (p) => p.discovery.total);
+      items.push({ emoji: "🌱", title: "Smallest suite", project: fewest.name, value: fmt(fewest.discovery.total) + " tests" });
+    }
+    const failing = executed.filter((p) => p.execution.failed > 0);
+    if (failing.length) {
+      const worst = maxBy(failing, (p) => p.execution.failed);
+      items.push({ emoji: "🚨", title: "Most failing tests", project: worst.name, value: fmt(worst.execution.failed), cls: "neg" });
+    } else if (projects.length) {
+      const dusty = maxBy(projects, (p) => p.discovery.ignored + p.discovery.commentedOut);
+      if (dusty.discovery.ignored + dusty.discovery.commentedOut > 0) {
+        items.push({ emoji: "🧹", title: "Most ignored + commented out", project: dusty.name, value: fmt(dusty.discovery.ignored + dusty.discovery.commentedOut), cls: "neg" });
+      }
+    }
+
+    if (!items.length) {
+      const div = document.createElement("div");
+      div.className = "empty"; div.style.padding = "20px 0";
+      div.textContent = "Run with test execution enabled to see highlights.";
+      list.appendChild(div);
+      return;
+    }
+    for (const item of items) {
+      const row = document.createElement("div"); row.className = "high";
+      const emoji = document.createElement("div"); emoji.className = "h-emoji"; emoji.textContent = item.emoji;
+      const body = document.createElement("div"); body.className = "h-body";
+      const title = document.createElement("div"); title.className = "h-title"; title.textContent = item.title;
+      const proj = document.createElement("div"); proj.className = "h-project"; proj.textContent = item.project;
+      body.append(title, proj);
+      const value = document.createElement("div"); value.className = "h-value" + (item.cls ? " " + item.cls : ""); value.textContent = item.value;
+      row.append(emoji, body, value);
+      list.appendChild(row);
+    }
+  }
+
+  const maxBy = (arr, f) => arr.reduce((a, b) => (f(b) > f(a) ? b : a));
+  const minBy = (arr, f) => arr.reduce((a, b) => (f(b) < f(a) ? b : a));
+
+  /* ---------- projects table ---------- */
+  function renderTable() {
+    const body = $("tableBody");
+    body.textContent = "";
+    const run = RUNS[state.runIndex];
+    const projects = (run.projects || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    $("tableSub").textContent = projects.length + " project" + (projects.length === 1 ? "" : "s") +
+      " in run " + dateFull(run.timestamp) + " · click a row to focus a project";
+
+    const kindLabel = { csharp: "C#", vue: "Vue", angular: "Angular", javascript: "JS" };
+
+    for (const p of projects) {
+      const tr = document.createElement("tr");
+      if (state.project === keyOf(p)) tr.classList.add("selected");
+      tr.addEventListener("click", () => {
+        state.project = state.project === keyOf(p) ? "*" : keyOf(p);
+        $("projectSelect").value = state.project;
+        render();
+      });
+
+      const nameTd = document.createElement("td");
+      const nm = document.createElement("div"); nm.className = "proj-name"; nm.textContent = p.name;
+      const pth = document.createElement("div"); pth.className = "proj-path"; pth.textContent = p.path;
+      nameTd.append(nm, pth);
+      tr.appendChild(nameTd);
+
+      const kindTd = document.createElement("td");
+      const badge = document.createElement("span"); badge.className = "badge " + p.kind; badge.textContent = kindLabel[p.kind] || p.kind;
+      kindTd.appendChild(badge);
+      tr.appendChild(kindTd);
+
+      appendCell(tr, p.framework, "");
+
+      const statusTd = document.createElement("td");
+      const pill = document.createElement("span");
+      const ex = p.execution;
+      if (ex && ex.status === "completed" && ex.failed === 0) { pill.className = "pill pass"; pill.textContent = "Passing"; }
+      else if (ex && ex.status === "completed") { pill.className = "pill fail"; pill.textContent = "Failing"; }
+      else if (ex && ex.status === "error") { pill.className = "pill err"; pill.textContent = "Run error"; pill.title = ex.error || ""; }
+      else { pill.className = "pill norun"; pill.textContent = "Not run"; }
+      statusTd.appendChild(pill);
+      tr.appendChild(statusTd);
+
+      appendNum(tr, p.discovery.total);
+      const e = p.execution && p.execution.status === "completed" ? p.execution : null;
+      appendNum(tr, e ? e.passed : null);
+      appendNum(tr, e ? e.failed : null, e && e.failed > 0 ? "fail-count" : "");
+      appendNum(tr, e ? e.skipped : null);
+      appendNum(tr, p.discovery.ignored);
+      appendNum(tr, p.discovery.explicit);
+      appendNum(tr, p.discovery.commentedOut);
+
+      const rateTd = document.createElement("td"); rateTd.className = "num";
+      if (e && e.passed + e.failed > 0) {
+        const r = pct(e.passed, e.passed + e.failed);
+        const meter = document.createElement("span"); meter.className = "meter";
+        const fill = document.createElement("i"); fill.style.width = r + "%";
+        meter.appendChild(fill);
+        const txt = document.createElement("span"); txt.textContent = " " + r + "%";
+        rateTd.append(meter, txt);
+      } else rateTd.textContent = "–";
+      tr.appendChild(rateTd);
+
+      const trendTd = document.createElement("td");
+      const passedSeries = RUNS.map((r) => {
+        const q = (r.projects || []).find((x) => keyOf(x) === keyOf(p));
+        return q && q.execution && q.execution.status === "completed" ? q.execution.passed : null;
+      });
+      trendTd.appendChild(sparkline(passedSeries, 60, 22, cssVar("--s-pass"), state.runIndex));
+      tr.appendChild(trendTd);
+
+      body.appendChild(tr);
+    }
+  }
+
+  function appendCell(tr, text, cls) {
+    const td = document.createElement("td");
+    if (cls) td.className = cls;
+    td.textContent = text ?? "–";
+    tr.appendChild(td);
+  }
+  function appendNum(tr, v, extraCls) {
+    const td = document.createElement("td");
+    td.className = "num" + (extraCls ? " " + extraCls : "");
+    if (v === null || v === undefined) td.textContent = "–";
+    else { td.textContent = fmt(v); if (v === 0) td.classList.add("zero"); }
+    tr.appendChild(td);
+  }
+
+  /* ---------- controls ---------- */
+  function renderControls() {
+    const sel = $("projectSelect");
+    if (!sel.options.length) {
+      const all = document.createElement("option");
+      all.value = "*"; all.textContent = "All projects";
+      sel.appendChild(all);
+      for (const p of allProjects) {
+        const opt = document.createElement("option");
+        opt.value = keyOf(p); opt.textContent = p.name;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener("change", () => { state.project = sel.value; render(); });
+    }
+
+    const run = RUNS[state.runIndex];
+    const meta = $("runMeta");
+    meta.textContent = "";
+    const strong = document.createElement("strong");
+    strong.textContent = "Run " + (state.runIndex + 1) + "/" + RUNS.length;
+    meta.appendChild(strong);
+    meta.appendChild(document.createTextNode(" · " + dateFull(run.timestamp)));
+    if (run.label) {
+      const chip = document.createElement("span"); chip.className = "run-label-chip"; chip.textContent = run.label;
+      meta.appendChild(chip);
+    }
+    $("prevRun").disabled = state.runIndex === 0;
+    $("nextRun").disabled = state.runIndex === RUNS.length - 1;
+  }
+
+  function syncSlider() { $("runSlider").value = state.runIndex; }
+
+  const slider = $("runSlider");
+  slider.max = RUNS.length - 1;
+  slider.value = state.runIndex;
+  slider.addEventListener("input", () => { state.runIndex = +slider.value; render(); });
+  $("prevRun").addEventListener("click", () => { if (state.runIndex > 0) { state.runIndex--; syncSlider(); render(); } });
+  $("nextRun").addEventListener("click", () => { if (state.runIndex < RUNS.length - 1) { state.runIndex++; syncSlider(); render(); } });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.target.tagName === "SELECT" || ev.target.tagName === "INPUT") return;
+    if (ev.key === "ArrowLeft" && state.runIndex > 0) { state.runIndex--; syncSlider(); render(); }
+    if (ev.key === "ArrowRight" && state.runIndex < RUNS.length - 1) { state.runIndex++; syncSlider(); render(); }
+  });
+
+  /* ---------- shell ---------- */
+  const latest = RUNS[RUNS.length - 1];
+  $("rootPath").textContent = latest.root || "";
+  $("rootPath").title = latest.root || "";
+  $("footRuns").textContent = RUNS.length + " run" + (RUNS.length === 1 ? "" : "s") +
+    " · last: " + dateFull(latest.timestamp);
+
+  function render() {
+    const aggs = AGGS();
+    renderControls();
+    renderTiles(aggs);
+    renderChart(aggs);
+    renderHighlights();
+    renderTable();
+  }
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => renderChart(AGGS()), 120);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
