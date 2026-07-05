@@ -3,6 +3,9 @@ bin/
 obj/
 *.user
 .vs/
+# ...but keep the hand-written npm wrapper (not a .NET build output)
+!packages/npm/bin/
+!packages/npm/bin/**
 
 # Node
 node_modules/
