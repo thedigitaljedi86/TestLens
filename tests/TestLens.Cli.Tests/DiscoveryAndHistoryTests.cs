@@ -58,6 +58,41 @@ public class ProjectDiscovererTests : IDisposable
 
         Assert.Empty(ProjectDiscoverer.Discover(_root));
     }
+
+    [Fact]
+    public void Detects_a_node_playwright_project_without_a_test_script()
+    {
+        // A dedicated e2e suite: no vue/angular, no `test` script - driven by `playwright test`.
+        Write("e2e/package.json", """{"name":"e2e","devDependencies":{"@playwright/test":"^1.47.0"}}""");
+
+        var project = Assert.Single(ProjectDiscoverer.Discover(_root));
+        Assert.Equal("javascript", project.Kind);
+        Assert.Equal("playwright", project.Framework);
+    }
+
+    [Fact]
+    public void Unit_runner_wins_over_playwright_when_a_package_has_both()
+    {
+        Write("app/package.json", """{"name":"app","dependencies":{"vue":"^3.0.0"},"devDependencies":{"vitest":"^2.0.0","@playwright/test":"^1.47.0"}}""");
+
+        var project = Assert.Single(ProjectDiscoverer.Discover(_root));
+        Assert.Equal("vitest", project.Framework);
+    }
+
+    [Fact]
+    public void Detects_dotnet_playwright_projects()
+    {
+        Write("E2E.Tests/E2E.Tests.csproj", """
+            <Project><ItemGroup>
+              <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+              <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.47.0" />
+            </ItemGroup></Project>
+            """);
+
+        var project = Assert.Single(ProjectDiscoverer.Discover(_root));
+        Assert.Equal("csharp", project.Kind);
+        Assert.Equal("playwright", project.Framework);
+    }
 }
 
 public class HistoryStoreTests : IDisposable

@@ -67,25 +67,33 @@ public static class ProjectDiscoverer
         try { content = File.ReadAllText(file.FullName); }
         catch (IOException) { return null; }
 
-        string framework =
+        string unitFramework =
             Regex.IsMatch(content, @"""xunit[""\.]", RegexOptions.IgnoreCase) ? "xunit" :
-            Regex.IsMatch(content, @"""nunit""", RegexOptions.IgnoreCase) ? "nunit" :
-            Regex.IsMatch(content, @"""MSTest(\.TestFramework)?""", RegexOptions.IgnoreCase) ? "mstest" :
+            Regex.IsMatch(content, @"""(NUnit|Microsoft\.Playwright\.NUnit)""", RegexOptions.IgnoreCase) ? "nunit" :
+            Regex.IsMatch(content, @"""MSTest(\.TestFramework)?""|""Microsoft\.Playwright\.MSTest""", RegexOptions.IgnoreCase) ? "mstest" :
             "";
 
+        // Playwright for .NET builds on NUnit/MSTest/xUnit; surface it as the framework.
+        bool playwright = content.Contains("Microsoft.Playwright", StringComparison.OrdinalIgnoreCase);
+
         // A csproj referencing only Microsoft.NET.Test.Sdk still counts as a test project.
-        bool isTestProject = framework.Length > 0
+        bool isTestProject = unitFramework.Length > 0
+            || playwright
             || content.Contains("Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase)
             || Regex.IsMatch(content, @"<IsTestProject>\s*true", RegexOptions.IgnoreCase);
 
         if (!isTestProject) return null;
+
+        string framework = playwright ? "playwright"
+            : unitFramework.Length > 0 ? unitFramework
+            : "unknown";
 
         return new DiscoveredProject(
             Name: Path.GetFileNameWithoutExtension(file.Name),
             AbsolutePath: file.DirectoryName!,
             RelativePath: Path.GetRelativePath(root, file.DirectoryName!).Replace('\\', '/'),
             Kind: "csharp",
-            Framework: framework.Length > 0 ? framework : "unknown");
+            Framework: framework);
     }
 
     private static DiscoveredProject? InspectPackageJson(FileInfo file, string root)
@@ -104,16 +112,21 @@ public static class ProjectDiscoverer
                 deps.Any(d => d.StartsWith("@angular/")) ? "angular" :
                 "javascript";
 
+            // Unit runners win over Playwright when both are present: a Playwright e2e
+            // suite usually lives in its own package, while an app package that also has
+            // Playwright still runs its unit tests through vitest/jest for `npm test`.
             string framework =
                 deps.Contains("vitest") ? "vitest" :
                 deps.Contains("jest") || deps.Contains("jest-preset-angular") ? "jest" :
+                deps.Contains("@playwright/test") ? "playwright" :
                 deps.Contains("karma") || deps.Contains("jasmine-core") ? "karma-jasmine" :
                 deps.Contains("mocha") ? "mocha" :
                 "";
 
             // Only Vue/Angular/JS packages that actually have a test setup are interesting.
             if (framework.Length == 0) return null;
-            if (kind == "javascript" && !HasTestScript(doc.RootElement)) return null;
+            // Playwright projects drive tests via `playwright test`, not a `test` script.
+            if (kind == "javascript" && framework != "playwright" && !HasTestScript(doc.RootElement)) return null;
 
             string name = doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
                 ? n.GetString()!
