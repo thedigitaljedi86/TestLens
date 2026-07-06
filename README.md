@@ -175,8 +175,11 @@ dotnet test                                   # run the unit tests
 dotnet run --project src/TestLens.Cli -- demo # generate a demo report
 ```
 
-Releases are automated: pushing a `v*` tag builds, tests and publishes to both
-NuGet and npm (see `.github/workflows/release.yml`).
+Releases are automated and version-driven: bump `<Version>` in
+`src/TestLens.Cli/TestLens.Cli.csproj` in a pull request, and when it merges to
+`main` the pipeline tests, publishes to NuGet and npm, tags `v<version>` and
+creates a GitHub release. If the version is unchanged nothing is published, so
+merging is always safe (see `.github/workflows/release.yml`).
 
 ## Contributing
 

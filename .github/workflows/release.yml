@@ -1,46 +1,80 @@
 name: Release
 
-# Publishes to NuGet (TestLens) and npm (testlens) when a version tag is pushed:
-#   git tag v0.1.0 && git push origin v0.1.0
+# Version-driven publishing to NuGet (TestLens) and npm (testlens).
 #
-# Required repository secrets (Settings -> Secrets and variables -> Actions):
+# HOW IT WORKS
+#   The version lives in src/TestLens.Cli/TestLens.Cli.csproj (<Version>).
+#   On every push to main this workflow reads that version and asks:
+#   "has v<version> already been released?" (does the tag exist).
+#     - already released -> do nothing.
+#     - new version      -> test, pack, publish to NuGet + npm, create the
+#                           tag v<version> and a GitHub release.
+#
+#   So cutting a release is just: bump <Version> in a PR and merge it.
+#   No manual tagging. You can also run it by hand from the Actions tab
+#   (workflow_dispatch) to retry a failed publish.
+#
+# REQUIRED REPOSITORY SECRETS (Settings -> Secrets and variables -> Actions):
 #   NUGET_API_KEY - api key from https://www.nuget.org/account/apikeys
 #   NPM_TOKEN     - automation token from https://www.npmjs.com/settings/~/tokens
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need tags to decide whether this version is new
+
+      - name: Read version from csproj
+        id: version
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' src/TestLens.Cli/TestLens.Cli.csproj)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Project version: $VERSION"
+
+      - name: Has this version already been released?
+        id: check
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::v${{ steps.version.outputs.version }} is already tagged - skipping publish. Bump <Version> in the csproj to release a new version."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::v${{ steps.version.outputs.version }} is new - publishing."
+          fi
 
       - name: Set up .NET 8
+        if: steps.check.outputs.release == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
       - name: Set up Node
+        if: steps.check.outputs.release == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: Derive version from tag
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-
       - name: Test
+        if: steps.check.outputs.release == 'true'
         run: dotnet test tests/TestLens.Cli.Tests --configuration Release
 
       - name: Pack NuGet package
-        run: dotnet pack src/TestLens.Cli --configuration Release -o nupkg -p:Version=$VERSION
+        if: steps.check.outputs.release == 'true'
+        run: dotnet pack src/TestLens.Cli --configuration Release -o nupkg
 
       - name: Push to NuGet
+        if: steps.check.outputs.release == 'true'
         run: >
           dotnet nuget push "nupkg/*.nupkg"
           --api-key "${{ secrets.NUGET_API_KEY }}"
@@ -48,21 +82,32 @@ jobs:
           --skip-duplicate
 
       - name: Assemble npm package
+        if: steps.check.outputs.release == 'true'
         run: |
-          dotnet publish src/TestLens.Cli --configuration Release -o publish -p:Version=$VERSION
+          dotnet publish src/TestLens.Cli --configuration Release -o publish
           mkdir -p packages/npm/dist
           cp publish/* packages/npm/dist/
           cd packages/npm
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Publish to npm
+        if: steps.check.outputs.release == 'true'
         working-directory: packages/npm
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Tag the release
+        if: steps.check.outputs.release == 'true'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
       - name: Create GitHub release
+        if: steps.check.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: TestLens v${{ steps.version.outputs.version }}
           files: nupkg/*.nupkg
           generate_release_notes: true
