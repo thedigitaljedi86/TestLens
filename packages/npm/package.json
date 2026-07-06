@@ -1,5 +1,5 @@
 {
-  "name": "testlens",
+  "name": "testlens-cli",
   "version": "0.1.0",
   "description": "Discover, run and track automated tests across C#, Vue and Angular projects - with a beautiful self-contained HTML report, full run history, trends and highlights.",
   "keywords": [

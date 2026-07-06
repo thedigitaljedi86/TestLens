@@ -5,7 +5,7 @@
 This is the npm distribution of TestLens. It requires the free, cross-platform [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (or newer) to be installed.
 
 ```bash
-npm install -g testlens
+npm install -g testlens-cli
 
 testlens ./my-repos           # scan, run tests, record a snapshot
 open my-repos/.testlens/index.html
