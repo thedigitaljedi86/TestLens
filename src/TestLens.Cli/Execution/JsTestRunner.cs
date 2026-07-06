@@ -29,8 +29,68 @@ public static partial class JsTestRunner
         {
             "vitest" => RunJsonReporter(projectDir, "vitest run --reporter=json --outputFile=\"{0}\"", timeout),
             "jest" => RunJsonReporter(projectDir, "jest --json --outputFile=\"{0}\" --ci", timeout),
+            "playwright" => RunPlaywright(projectDir, timeout),
             "karma-jasmine" => RunKarma(projectDir, timeout),
             _ => RunNpmTest(projectDir, timeout),
+        };
+    }
+
+    /// <summary>
+    /// Runs a Playwright suite (`playwright test`) with the JSON reporter and reads the
+    /// run-level <c>stats</c> block. Flaky tests (green after a retry) count as passed.
+    /// </summary>
+    private static ExecutionResult RunPlaywright(string projectDir, TimeSpan timeout)
+    {
+        var outputFile = Path.Combine(Path.GetTempPath(), $"testlens-pw-{Guid.NewGuid():N}.json");
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var env = new Dictionary<string, string> { ["PLAYWRIGHT_JSON_OUTPUT_NAME"] = outputFile };
+            var result = ProcessRunner.Run(Npx, "playwright test --reporter=json", projectDir, timeout, env);
+            stopwatch.Stop();
+
+            if (result.TimedOut)
+                return Error($"Timed out after {timeout.TotalSeconds:0}s", stopwatch);
+
+            if (!File.Exists(outputFile))
+            {
+                var detail = DotnetTestRunner.Truncate(result.Stderr.Length > 0 ? result.Stderr : result.Stdout, 800);
+                return Error($"Playwright produced no JSON output (exit {result.ExitCode}). " +
+                             $"Browsers may be missing - try 'npx playwright install'. {detail}", stopwatch);
+            }
+
+            var execution = ParsePlaywrightStats(File.ReadAllText(outputFile));
+            execution.DurationMs = stopwatch.ElapsedMilliseconds;
+            return execution;
+        }
+        catch (JsonException e)
+        {
+            return Error($"Could not parse Playwright JSON output: {e.Message}", stopwatch);
+        }
+        finally
+        {
+            try { File.Delete(outputFile); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// Reads the run-level <c>stats</c> block of a Playwright JSON report
+    /// (<c>expected</c>=passed, <c>unexpected</c>=failed, <c>flaky</c> counted as passed).
+    /// </summary>
+    public static ExecutionResult ParsePlaywrightStats(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (!doc.RootElement.TryGetProperty("stats", out var stats))
+            return new ExecutionResult { Status = "error", Error = "Playwright JSON output had no 'stats' block." };
+
+        int Get(string prop) => stats.TryGetProperty(prop, out var v) && v.TryGetInt32(out var n) ? n : 0;
+
+        return new ExecutionResult
+        {
+            Status = "completed",
+            Passed = Get("expected") + Get("flaky"),
+            Failed = Get("unexpected"),
+            Skipped = Get("skipped"),
         };
     }
 

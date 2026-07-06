@@ -6,9 +6,10 @@ contains a bit of everything the tool understands:
 | Project | Type | Framework | What it demonstrates |
 |---|---|---|---|
 | `DemoShop.Api.Tests` | C# | xUnit | passing + failing tests, `Skip=`, a commented-out test |
-| `DemoShop.Domain.Tests` | C# | NUnit | `[TestCase]`, `[Ignore]`, `[Explicit]`, a commented-out test |
+| `DemoShop.Domain.Tests` | C# | NUnit | `[TestCase]`, `[Ignore]`, method-level **and class-level** `[Explicit]`, a commented-out test |
 | `storefront-vue` | Vue | Vitest | `it.skip`, `it.todo`, a failing test, a commented-out test |
 | `admin-angular` | Angular | Karma/Jasmine | `xit`, a commented-out test, the "run error" state (no `node_modules`) |
+| `e2e-playwright` | JS | Playwright | `test`, `test.skip`, `test.fixme`, `test.only`, a commented-out test |
 
 Try it from the repository root:
 
