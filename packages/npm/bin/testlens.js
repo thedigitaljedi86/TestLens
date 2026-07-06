@@ -15,7 +15,7 @@ const dll = path.join(__dirname, "..", "dist", "testlens.dll");
 
 if (!existsSync(dll)) {
   console.error("testlens: dist/testlens.dll is missing from this installation.");
-  console.error("Try reinstalling: npm install -g testlens");
+  console.error("Try reinstalling: npm install -g testlens-cli");
   process.exit(1);
 }
 
