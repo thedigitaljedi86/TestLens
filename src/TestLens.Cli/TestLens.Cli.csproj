@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>TestLens</RootNamespace>
+    <AssemblyName>testlens</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Allow the npm-distributed dll to run on newer installed runtimes (e.g. .NET 9). -->
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Packaging">
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>testlens</ToolCommandName>
+    <PackageId>TestLens</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>IT Performance ApS</Authors>
+    <Company>IT Performance ApS</Company>
+    <Description>Discover, run and track automated tests across C#, Vue and Angular projects. Generates a beautiful self-contained HTML report with full run history, trends and highlights.</Description>
+    <PackageTags>testing;test-report;dotnet-tool;ci;quality;dashboard;vue;angular;xunit;nunit;mstest;jest;vitest</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/thedigitaljedi86/TestLens</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/thedigitaljedi86/TestLens</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Report/Assets/report.html" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

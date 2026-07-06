@@ -1,0 +1,27 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+# ...but keep the hand-written npm wrapper (not a .NET build output)
+!packages/npm/bin/
+!packages/npm/bin/**
+
+# Node
+node_modules/
+npm-debug.log*
+packages/npm/dist/
+
+# TestLens output
+.testlens/
+testlens-demo/
+
+# IDE
+.idea/
+*.swp
+.DS_Store
+
+# Test results
+TestResults/
+*.trx
+coverage/
