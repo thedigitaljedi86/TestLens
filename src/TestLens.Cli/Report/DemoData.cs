@@ -21,6 +21,7 @@ public static class DemoData
             new("storefront-web",            "apps/storefront",           "vue",     "vitest",        146, 5.5, 0.04, -0.60, 2, 1, 3),
             new("admin-dashboard",           "apps/admin",                "angular", "karma-jasmine", 118, 3.0, 0.07, -0.25, 5, 0, 6),
             new("customer-portal",           "apps/portal",               "angular", "jest",           74, 6.5, 0.09, -0.70, 1, 0, 1),
+            new("checkout-e2e",              "e2e/checkout",              "javascript", "playwright",   38, 2.5, 0.13, -0.45, 4, 1, 2),
         };
 
         var random = new Random(42);

@@ -128,6 +128,114 @@ public class CSharpTestScannerTests : IDisposable
 
         Assert.Equal(0, CSharpTestScanner.Scan(_dir).Total);
     }
+
+    [Fact]
+    public void Class_level_explicit_marks_every_test_in_the_class()
+    {
+        WriteSource("SmokeTests.cs", """
+            [TestFixture]
+            [Explicit("Only run on demand")]
+            public class SmokeTests
+            {
+                [Test] public void A() { }
+                [Test] public void B() { }
+                [TestCase(1)] [TestCase(2)] public void C(int x) { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);     // 2 [Test] + 2 [TestCase]
+        Assert.Equal(4, counts.Explicit);  // all inherit class-level [Explicit]
+        Assert.Equal(0, counts.Ignored);
+    }
+
+    [Fact]
+    public void Class_level_and_method_level_explicit_combine_without_double_counting()
+    {
+        WriteSource("Mixed.cs", """
+            [Explicit]
+            public class Outer
+            {
+                [Test] public void A() { }
+                [Test, Explicit] public void B() { }
+
+                public class NotExplicitNested { }
+            }
+
+            public class Plain
+            {
+                [Test] public void C() { }
+                [Test] [Explicit] public void D() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);
+        Assert.Equal(3, counts.Explicit); // A, B (class Outer) + D (method) ; C is plain
+        Assert.Equal(0, counts.Ignored);
+    }
+
+    [Fact]
+    public void Class_level_ignore_marks_every_test_and_wins_over_explicit()
+    {
+        WriteSource("Ignored.cs", """
+            [Ignore("whole fixture disabled")]
+            [TestFixture]
+            public class Disabled
+            {
+                [Test] public void A() { }
+                [Test] [Explicit] public void B() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(2, counts.Total);
+        Assert.Equal(2, counts.Ignored);  // class-level ignore takes precedence
+        Assert.Equal(0, counts.Explicit);
+    }
+
+    [Fact]
+    public void Xunit_v3_explicit_and_skip_properties_are_detected()
+    {
+        WriteSource("XunitV3.cs", """
+            public class XunitV3
+            {
+                [Fact(Explicit = true)] public void A() { }
+                [Theory(Explicit = true)] [InlineData(1)] public void B(int x) { }
+                [Fact(Skip = "later")] public void C() { }
+                [Fact] public void D() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);
+        Assert.Equal(2, counts.Explicit); // A, B
+        Assert.Equal(1, counts.Ignored);  // C
+    }
+
+    [Fact]
+    public void Attribute_args_with_brackets_do_not_break_parsing()
+    {
+        WriteSource("Arrays.cs", """
+            [TestFixture]
+            public class Arrays
+            {
+                [TestCase(new int[] { 1, 2, 3 })]
+                public void A(int[] values) { }
+
+                [Test] [Explicit] public void B() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(2, counts.Total);
+        Assert.Equal(1, counts.Explicit);
+    }
 }
 
 public class JsTestScannerTests : IDisposable
@@ -171,5 +279,30 @@ public class JsTestScannerTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_dir, "x.spec.js"), "commit('msg'); submit(form); it('real', () => {});");
         Assert.Equal(1, JsTestScanner.Scan(_dir).Total);
+    }
+
+    [Fact]
+    public void Counts_playwright_shapes_including_fixme_and_ignores_describe_and_hooks()
+    {
+        File.WriteAllText(Path.Combine(_dir, "login.spec.ts"), """
+            import { test, expect } from '@playwright/test';
+
+            test.describe('login', () => {
+              test.beforeEach(async ({ page }) => { await page.goto('/'); });
+
+              test('user can sign in', async ({ page }) => {});
+              test.skip('sso is flaky', async ({ page }) => {});
+              test.fixme('broken on webkit', async ({ page }) => {});
+              test.only('focus this', async ({ page }) => {});
+              // test('temporarily removed', async ({ page }) => {});
+            });
+            """);
+
+        var counts = JsTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);      // sign in + skip + fixme + only (describe/beforeEach excluded)
+        Assert.Equal(2, counts.Ignored);    // skip + fixme
+        Assert.Equal(1, counts.Explicit);   // only
+        Assert.Equal(1, counts.CommentedOut);
     }
 }
