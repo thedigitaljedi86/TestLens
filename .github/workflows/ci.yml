@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: dotnet build TestLens.sln --configuration Release
+
+      - name: Test
+        run: dotnet test tests/TestLens.Cli.Tests --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: Pack (NuGet)
+        run: dotnet pack src/TestLens.Cli --configuration Release --no-build -o nupkg
+
+      - name: Assemble npm package
+        run: |
+          dotnet publish src/TestLens.Cli --configuration Release -o cli-publish
+          mkdir -p packages/npm/dist
+          cp cli-publish/* packages/npm/dist/
+
+      - name: Smoke-test npm wrapper
+        run: |
+          node packages/npm/bin/testlens.js --version
+          node packages/npm/bin/testlens.js demo --out demo-report
+          test -f demo-report/index.html
+
+      - name: Smoke-test scan against the samples (static analysis)
+        run: |
+          dotnet cli-publish/testlens.dll scan samples --no-run
+          test -f samples/.testlens/index.html
+
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg/*.nupkg
+
+      - name: Upload demo report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-report
+          path: demo-report/index.html

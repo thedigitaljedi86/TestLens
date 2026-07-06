@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{537826CF-766A-4D7C-B2E3-E453DFC32E26}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLens.Cli", "src\TestLens.Cli\TestLens.Cli.csproj", "{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CC61B0B3-1069-4B15-A196-100763B02A2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLens.Cli.Tests", "tests\TestLens.Cli.Tests\TestLens.Cli.Tests.csproj", "{8E92664E-806A-4EFF-A4A5-AA179B1A8055}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E92664E-806A-4EFF-A4A5-AA179B1A8055}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E92664E-806A-4EFF-A4A5-AA179B1A8055}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E92664E-806A-4EFF-A4A5-AA179B1A8055}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E92664E-806A-4EFF-A4A5-AA179B1A8055}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EB0947A5-DF5E-4833-96AE-0E6FCF3DCC4D} = {537826CF-766A-4D7C-B2E3-E453DFC32E26}
+		{8E92664E-806A-4EFF-A4A5-AA179B1A8055} = {CC61B0B3-1069-4B15-A196-100763B02A2D}
+	EndGlobalSection
+EndGlobal
