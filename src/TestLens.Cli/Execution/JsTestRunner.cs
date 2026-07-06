@@ -6,8 +6,8 @@ using TestLens.Models;
 namespace TestLens.Execution;
 
 /// <summary>
-/// Runs JavaScript/TypeScript test suites (Vitest, Jest, Karma/Jasmine) and
-/// parses their machine-readable output where available.
+/// Runs JavaScript/TypeScript test suites (Vitest, Jest, Karma/Jasmine,
+/// Playwright) and parses their machine-readable output where available.
 /// </summary>
 public static partial class JsTestRunner
 {
@@ -30,6 +30,7 @@ public static partial class JsTestRunner
             "vitest" => RunJsonReporter(projectDir, "vitest run --reporter=json --outputFile=\"{0}\"", timeout),
             "jest" => RunJsonReporter(projectDir, "jest --json --outputFile=\"{0}\" --ci", timeout),
             "karma-jasmine" => RunKarma(projectDir, timeout),
+            "playwright" => RunPlaywright(projectDir, timeout),
             _ => RunNpmTest(projectDir, timeout),
         };
     }
@@ -69,6 +70,62 @@ public static partial class JsTestRunner
         catch (JsonException e)
         {
             return Error($"Could not parse test runner JSON output: {e.Message}", stopwatch);
+        }
+        finally
+        {
+            try { File.Delete(outputFile); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// Runs a Playwright suite with the JSON reporter. Playwright reports a
+    /// top-level <c>stats</c> object: expected = passed, unexpected = failed,
+    /// flaky = passed on retry, skipped = skipped (includes test.fixme).
+    /// </summary>
+    private static ExecutionResult RunPlaywright(string projectDir, TimeSpan timeout)
+    {
+        // --reporter=json prints to stdout by default; PLAYWRIGHT_JSON_OUTPUT_NAME
+        // redirects it to a file, which survives any noise on stdout.
+        var outputFile = Path.Combine(Path.GetTempPath(), $"testlens-pw-{Guid.NewGuid():N}.json");
+        var env = new Dictionary<string, string> { ["PLAYWRIGHT_JSON_OUTPUT_NAME"] = outputFile };
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var result = ProcessRunner.Run(Npx, "playwright test --reporter=json", projectDir, timeout, env);
+            stopwatch.Stop();
+
+            if (result.TimedOut)
+                return Error($"Timed out after {timeout.TotalSeconds:0}s", stopwatch);
+
+            string json;
+            if (File.Exists(outputFile))
+                json = File.ReadAllText(outputFile);
+            else if (result.Stdout.TrimStart().StartsWith('{'))
+                json = result.Stdout;
+            else
+            {
+                var detail = DotnetTestRunner.Truncate(result.Stderr.Length > 0 ? result.Stderr : result.Stdout, 800);
+                return Error($"Playwright produced no JSON output (exit {result.ExitCode}). {detail}", stopwatch);
+            }
+
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("stats", out var stats))
+                return Error("Playwright JSON output had no 'stats' section.", stopwatch);
+
+            int Get(string prop) => stats.TryGetProperty(prop, out var v) && v.TryGetInt32(out var n) ? n : 0;
+
+            return new ExecutionResult
+            {
+                Status = "completed",
+                Passed = Get("expected") + Get("flaky"),
+                Failed = Get("unexpected"),
+                Skipped = Get("skipped"),
+                DurationMs = stopwatch.ElapsedMilliseconds,
+            };
+        }
+        catch (JsonException e)
+        {
+            return Error($"Could not parse Playwright JSON output: {e.Message}", stopwatch);
         }
         finally
         {

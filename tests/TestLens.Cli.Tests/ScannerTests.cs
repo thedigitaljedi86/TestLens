@@ -121,6 +121,81 @@ public class CSharpTestScannerTests : IDisposable
     }
 
     [Fact]
+    public void Class_level_explicit_marks_every_test_in_the_fixture()
+    {
+        WriteSource("SlowSuite.cs", """
+            [Explicit("nightly only")]
+            [TestFixture]
+            public class SlowSuite
+            {
+                [Test]
+                public void A() { }
+
+                [TestCase(1)]
+                [TestCase(2)]
+                public void B(int x) { }
+
+                [Test]
+                public void C() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);     // 2 [Test] + 2 [TestCase]
+        Assert.Equal(4, counts.Explicit);  // all of them, via the class-level [Explicit]
+    }
+
+    [Fact]
+    public void Only_tests_inside_the_explicit_class_are_counted_as_explicit()
+    {
+        WriteSource("Mixed.cs", """
+            [Explicit]
+            public class Nightly
+            {
+                [Test] public void A() { }
+                [Test] public void B() { }
+            }
+
+            [TestFixture]
+            public class Fast
+            {
+                [Test] public void C() { }
+                [Test] public void D() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);
+        Assert.Equal(2, counts.Explicit); // only A and B, not C and D
+    }
+
+    [Fact]
+    public void Xunit_fact_and_theory_with_explicit_true_are_counted()
+    {
+        WriteSource("XunitExplicit.cs", """
+            public class XunitExplicit
+            {
+                [Fact(Explicit = true)]
+                public void A() { }
+
+                [Theory(Explicit = true)]
+                [InlineData(1)]
+                public void B(int x) { }
+
+                [Fact]
+                public void C() { }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(3, counts.Total);
+        Assert.Equal(2, counts.Explicit); // A and B
+    }
+
+    [Fact]
     public void Skips_bin_and_obj_directories()
     {
         Directory.CreateDirectory(Path.Combine(_dir, "obj"));
@@ -157,6 +232,27 @@ public class JsTestScannerTests : IDisposable
         Assert.Equal(3, counts.Ignored);   // skip + xit + todo
         Assert.Equal(2, counts.Explicit);  // only + fit
         Assert.Equal(1, counts.CommentedOut);
+    }
+
+    [Fact]
+    public void Counts_playwright_fixme_as_ignored_and_only_as_explicit()
+    {
+        File.WriteAllText(Path.Combine(_dir, "checkout.spec.ts"), """
+            import { test, expect } from '@playwright/test';
+
+            test.describe('checkout', () => {
+              test('adds an item', async ({ page }) => {});
+              test.skip('coupon flow', async ({ page }) => {});
+              test.fixme('broken on webkit', async ({ page }) => {});
+              test.only('focused', async ({ page }) => {});
+            });
+            """);
+
+        var counts = JsTestScanner.Scan(_dir);
+
+        Assert.Equal(4, counts.Total);
+        Assert.Equal(2, counts.Ignored);   // skip + fixme
+        Assert.Equal(1, counts.Explicit);  // only
     }
 
     [Fact]
