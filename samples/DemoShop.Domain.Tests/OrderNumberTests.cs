@@ -49,3 +49,24 @@ public class OrderNumberTests
     }
     */
 }
+
+// Class-level [Explicit]: every test in this fixture is explicit and only runs
+// when selected by name - TestLens counts all three, not just one attribute.
+[TestFixture]
+[Explicit("Load suite - only run on demand")]
+public class OrderNumberLoadTests
+{
+    [Test]
+    public void Formats_a_large_batch()
+    {
+        for (var i = 0; i < 250_000; i++)
+            Assert.That(OrderNumber.Format(2026, i), Does.StartWith("ORD-2026-"));
+    }
+
+    [TestCase(2020)]
+    [TestCase(2026)]
+    public void Validates_every_year(int year)
+    {
+        Assert.That(OrderNumber.IsValid(OrderNumber.Format(year, 1)), Is.True);
+    }
+}

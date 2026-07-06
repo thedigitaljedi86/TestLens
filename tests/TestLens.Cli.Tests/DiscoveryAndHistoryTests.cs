@@ -51,6 +51,16 @@ public class ProjectDiscovererTests : IDisposable
     }
 
     [Fact]
+    public void Detects_playwright_projects_even_without_a_test_script()
+    {
+        Write("e2e/package.json", """{"name":"e2e","devDependencies":{"@playwright/test":"^1.44.0"},"scripts":{"test:e2e":"playwright test"}}""");
+
+        var project = Assert.Single(ProjectDiscoverer.Discover(_root));
+        Assert.Equal("javascript", project.Kind);
+        Assert.Equal("playwright", project.Framework);
+    }
+
+    [Fact]
     public void Ignores_packages_without_a_test_framework_and_node_modules()
     {
         Write("lib/package.json", """{"name":"lib","dependencies":{"vue":"^3.0.0"}}""");

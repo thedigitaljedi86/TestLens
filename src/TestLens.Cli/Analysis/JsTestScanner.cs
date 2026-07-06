@@ -5,13 +5,13 @@ namespace TestLens.Analysis;
 
 /// <summary>
 /// Counts test declarations in JavaScript/TypeScript sources (Jest, Vitest,
-/// Jasmine/Karma): it/test blocks, skipped (xit, .skip), focused (.only / fit,
-/// reported as "explicit") and commented-out tests.
+/// Jasmine/Karma, Playwright): it/test blocks, skipped (xit, .skip, Playwright's
+/// .fixme), focused (.only / fit, reported as "explicit") and commented-out tests.
 /// </summary>
 public static partial class JsTestScanner
 {
-    // it( / test( / fit( / xit( / it.skip( / test.only( / it.each(...)( etc.
-    [GeneratedRegex(@"(?<![\w.$])(?:(?<skip>xit|xtest)|(?<focus>fit|ftest)|(?<name>it|test))(?:\.(?<mod>skip|only|each|todo|failing|concurrent|sequential))?\s*[(`]", RegexOptions.Compiled)]
+    // it( / test( / fit( / xit( / it.skip( / test.only( / test.fixme( / it.each(...)( etc.
+    [GeneratedRegex(@"(?<![\w.$])(?:(?<skip>xit|xtest)|(?<focus>fit|ftest)|(?<name>it|test))(?:\.(?<mod>skip|only|each|todo|failing|fixme|concurrent|sequential))?\s*[(`]", RegexOptions.Compiled)]
     private static partial Regex TestDeclaration();
 
     private static readonly string[] SkippedDirs =
@@ -39,7 +39,7 @@ public static partial class JsTestScanner
             {
                 string mod = m.Groups["mod"].Value;
                 counts.Total++;
-                if (m.Groups["skip"].Success || mod is "skip" or "todo") counts.Ignored++;
+                if (m.Groups["skip"].Success || mod is "skip" or "todo" or "fixme") counts.Ignored++;
                 else if (m.Groups["focus"].Success || mod == "only") counts.Explicit++;
             }
             counts.CommentedOut += TestDeclaration().Matches(comments).Count;

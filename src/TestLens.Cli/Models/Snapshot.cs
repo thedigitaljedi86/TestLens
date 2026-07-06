@@ -21,7 +21,7 @@ public sealed class ProjectResult
     [JsonPropertyName("path")] public string Path { get; set; } = "";
     /// <summary>csharp | vue | angular | javascript</summary>
     [JsonPropertyName("kind")] public string Kind { get; set; } = "";
-    /// <summary>xunit | nunit | mstest | jest | vitest | karma-jasmine | unknown</summary>
+    /// <summary>xunit | nunit | mstest | jest | vitest | karma-jasmine | mocha | playwright | unknown</summary>
     [JsonPropertyName("framework")] public string Framework { get; set; } = "";
     [JsonPropertyName("discovery")] public DiscoveryCounts Discovery { get; set; } = new();
     [JsonPropertyName("execution")] public ExecutionResult? Execution { get; set; }

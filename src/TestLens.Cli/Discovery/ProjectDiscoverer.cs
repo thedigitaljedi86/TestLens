@@ -105,6 +105,7 @@ public static class ProjectDiscoverer
                 "javascript";
 
             string framework =
+                deps.Contains("@playwright/test") ? "playwright" :
                 deps.Contains("vitest") ? "vitest" :
                 deps.Contains("jest") || deps.Contains("jest-preset-angular") ? "jest" :
                 deps.Contains("karma") || deps.Contains("jasmine-core") ? "karma-jasmine" :
@@ -112,8 +113,10 @@ public static class ProjectDiscoverer
                 "";
 
             // Only Vue/Angular/JS packages that actually have a test setup are interesting.
+            // Playwright projects are always interesting - their "test" script is often
+            // named differently (e.g. "test:e2e"), so we don't require one.
             if (framework.Length == 0) return null;
-            if (kind == "javascript" && !HasTestScript(doc.RootElement)) return null;
+            if (kind == "javascript" && framework != "playwright" && !HasTestScript(doc.RootElement)) return null;
 
             string name = doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
                 ? n.GetString()!

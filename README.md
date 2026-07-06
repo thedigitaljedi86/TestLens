@@ -93,10 +93,18 @@ testlens demo
 | **C#** | `.csproj` referencing a test framework | xUnit, NUnit, MSTest | `[Fact]`, `[Theory]`, `[Test]`, `[TestCase]`, `[TestMethod]`, `Skip=`, `[Ignore]`, `[Explicit]`, commented-out tests |
 | **Vue** | `package.json` with `vue` + a runner | Vitest, Jest | `it`/`test`, `it.skip`, `xit`, `it.todo`, `it.only`/`fit`, commented-out tests |
 | **Angular** | `package.json` with `@angular/*` + a runner | Karma/Jasmine, Jest | same as above |
+| **Playwright** | `package.json` with `@playwright/test` | Playwright Test | `test`, `test.skip`, `test.fixme`, `test.only`, commented-out tests |
+
+**Explicit tests** are detected everywhere they hide: a method-level
+`[Explicit]`, a class-level `[Explicit]` on an NUnit fixture (which marks
+*every* test in the class explicit), and xUnit's `[Fact(Explicit = true)]` /
+`[Theory(Explicit = true)]`. On the JS side, `.only`/`fit` count as explicit
+(focused) tests.
 
 Execution uses each ecosystem's native runner (`dotnet test` with TRX,
-`vitest`/`jest` with JSON reporters, `ng test` for Karma) and parses the real
-results — passed, failed and skipped per project.
+`vitest`/`jest` with JSON reporters, `ng test` for Karma, `playwright test`
+with the JSON reporter) and parses the real results — passed, failed and
+skipped per project.
 
 ## Commands & options
 
