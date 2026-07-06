@@ -90,13 +90,18 @@ testlens demo
 
 | Ecosystem | Detection | Frameworks | Counted in static analysis |
 |---|---|---|---|
-| **C#** | `.csproj` referencing a test framework | xUnit, NUnit, MSTest | `[Fact]`, `[Theory]`, `[Test]`, `[TestCase]`, `[TestMethod]`, `Skip=`, `[Ignore]`, `[Explicit]`, commented-out tests |
+| **C#** | `.csproj` referencing a test framework | xUnit, NUnit, MSTest, Playwright for .NET | `[Fact]`, `[Theory]`, `[Test]`, `[TestCase]`, `[TestMethod]`; ignored (`Skip=`, `[Ignore]`) and explicit (`[Explicit]`, xUnit v3 `Explicit = true`) — **at method _and_ class level** — plus commented-out tests |
 | **Vue** | `package.json` with `vue` + a runner | Vitest, Jest | `it`/`test`, `it.skip`, `xit`, `it.todo`, `it.only`/`fit`, commented-out tests |
 | **Angular** | `package.json` with `@angular/*` + a runner | Karma/Jasmine, Jest | same as above |
+| **Playwright** | `package.json` with `@playwright/test` | Playwright test runner | `test`, `test.skip`, `test.fixme`, `test.only`; `describe`/hooks excluded; commented-out tests |
+
+A class-level `[Explicit]` or `[Ignore]` (NUnit/MSTest) applies to **every** test in
+that fixture — TestLens attributes them all, not just the single attribute.
 
 Execution uses each ecosystem's native runner (`dotnet test` with TRX,
-`vitest`/`jest` with JSON reporters, `ng test` for Karma) and parses the real
-results — passed, failed and skipped per project.
+`vitest`/`jest` with JSON reporters, `playwright test` with the JSON reporter,
+`ng test` for Karma) and parses the real results — passed, failed and skipped
+per project.
 
 ## Commands & options
 
