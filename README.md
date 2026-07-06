@@ -9,7 +9,7 @@ and watch the trend evolve, run after run, in a beautiful self-contained HTML re
 
 [![CI](https://github.com/thedigitaljedi86/TestLens/actions/workflows/ci.yml/badge.svg)](https://github.com/thedigitaljedi86/TestLens/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/TestLens?logo=nuget&label=NuGet)](https://www.nuget.org/packages/TestLens)
-[![npm](https://img.shields.io/npm/v/testlens?logo=npm&label=npm)](https://www.npmjs.com/package/testlens)
+[![npm](https://img.shields.io/npm/v/testlens-cli?logo=npm&label=npm)](https://www.npmjs.com/package/testlens-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
@@ -62,8 +62,8 @@ Pick your ecosystem — it's the same tool:
 # .NET
 dotnet tool install --global TestLens
 
-# npm (requires the free .NET 8 runtime)
-npm install -g testlens
+# npm (requires the free .NET 8 runtime); the command is still `testlens`
+npm install -g testlens-cli
 ```
 
 ## Quick start
