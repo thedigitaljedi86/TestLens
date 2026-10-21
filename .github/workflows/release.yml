@@ -16,7 +16,9 @@ name: Release
 #
 # REQUIRED REPOSITORY SECRETS (Settings -> Secrets and variables -> Actions):
 #   NUGET_API_KEY - api key from https://www.nuget.org/account/apikeys
-#   NPM_TOKEN     - automation token from https://www.npmjs.com/settings/~/tokens
+#
+# npm uses trusted publishing (OIDC) - no token. The trusted publisher on
+# npmjs.com must point at thedigitaljedi86/TestLens and this file (release.yml).
 
 on:
   push:
@@ -25,6 +27,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # OIDC token for npm trusted publishing
 
 jobs:
   release:
@@ -62,8 +65,12 @@ jobs:
         if: steps.check.outputs.release == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
+
+      - name: Update npm (trusted publishing needs npm 11.5.1+)
+        if: steps.check.outputs.release == 'true'
+        run: npm install -g npm@latest
 
       - name: Test
         if: steps.check.outputs.release == 'true'
@@ -94,8 +101,6 @@ jobs:
         if: steps.check.outputs.release == 'true'
         working-directory: packages/npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag the release
         if: steps.check.outputs.release == 'true'
