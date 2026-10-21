@@ -100,7 +100,7 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.release == 'true'
         working-directory: packages/npm
-        run: npm publish --access public
+        run: npm publish --access public --loglevel verbose
 
       - name: Tag the release
         if: steps.check.outputs.release == 'true'
