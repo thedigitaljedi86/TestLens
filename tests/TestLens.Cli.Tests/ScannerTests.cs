@@ -198,6 +198,64 @@ public class CSharpTestScannerTests : IDisposable
     }
 
     [Fact]
+    public void Nunit_explicit_selectors_name_the_fixture_or_the_method()
+    {
+        WriteSource("Selectors.cs", """
+            namespace Shop.Tests;
+
+            [Explicit]
+            public class Sandbox
+            {
+                [Test] public void A() { }
+                [TestCase(1)] [TestCase(2)] public void B(int x) { }
+
+                public class Nested
+                {
+                    [Test, Explicit] public void C() { }
+                }
+            }
+
+            public class Plain
+            {
+                [Test] public void D() { }
+                [Test] [Explicit] public void E() { }
+                [Test, Explicit, Ignore("off")] public void F() { }
+            }
+            """);
+        WriteSource("Block.cs", """
+            namespace Shop
+            {
+                namespace Api.Tests
+                {
+                    public class Slow { [Test, Explicit] public void G() { } }
+                }
+            }
+            """);
+
+        var counts = CSharpTestScanner.Scan(_dir);
+
+        Assert.Equal(
+            new[]
+            {
+                "class == 'Shop.Tests.Sandbox'",
+                "test == 'Shop.Api.Tests.Slow.G'",
+                "test == 'Shop.Tests.Plain.E'",
+                "test == 'Shop.Tests.Sandbox+Nested.C'",
+            },
+            counts.NUnitExplicitSelectors);
+    }
+
+    [Fact]
+    public void Xunit_v3_explicit_needs_no_nunit_selector()
+    {
+        WriteSource("XunitV3Only.cs", """
+            public class XunitV3 { [Fact(Explicit = true)] public void A() { } }
+            """);
+
+        Assert.Empty(CSharpTestScanner.Scan(_dir).NUnitExplicitSelectors);
+    }
+
+    [Fact]
     public void Xunit_v3_explicit_and_skip_properties_are_detected()
     {
         WriteSource("XunitV3.cs", """

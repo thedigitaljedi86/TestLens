@@ -96,13 +96,12 @@ internal static class Program
                     !Directory.Exists(Path.Combine(project.AbsolutePath, "node_modules")))
                 {
                     Console.Write("npm install ... ");
-                    var npm = OperatingSystem.IsWindows() ? "npm.cmd" : "npm";
-                    ProcessRunner.Run(npm, "install --no-audit --no-fund", project.AbsolutePath, options.Timeout);
                 }
 
                 result.Execution = project.Kind == "csharp"
-                    ? DotnetTestRunner.Run(project.AbsolutePath, options.Timeout)
-                    : JsTestRunner.Run(project.AbsolutePath, project.Framework, options.Timeout);
+                    ? DotnetTestRunner.Run(project.AbsolutePath, options.Timeout, options.IncludeExplicit,
+                        result.Discovery.NUnitExplicitSelectors)
+                    : JsTestRunner.Run(project.AbsolutePath, project.Framework, options.Timeout, options.NpmInstall);
             }
             else
             {
@@ -219,6 +218,9 @@ internal static class Program
         else if (p.Execution is { Status: "error" } err)
             parts.Add($"run failed: {Truncate(err.Error ?? "unknown", 90)}");
 
+        if (p.Execution is { Status: "completed", Error: { } warning })
+            parts.Add(Truncate(warning, 90));
+
         return string.Join("  |  ", parts);
     }
 
@@ -259,7 +261,9 @@ internal static class Program
             Options:
               --out <dir>        Output directory (default: <directory>/.testlens)
               --no-run           Static analysis only - discover tests without executing them
-              --npm-install      Run 'npm install' for JS projects missing node_modules
+              --no-npm-install   Don't install dependencies for JS projects missing node_modules
+                                 (by default 'npm ci'/'npm install' runs first)
+              --include-explicit Also run explicit C# tests (NUnit [Explicit], xUnit v3 Explicit = true)
               --label <text>     Attach a label to this run (shown in the report timeline)
               --timeout <sec>    Per-project test run timeout (default: 600)
               --fail-on-errors   Exit code 1 when tests fail or a runner errors (for CI)
@@ -280,7 +284,8 @@ internal sealed class CliOptions
     public string Root = ".";
     public string OutputDir = "";
     public bool RunTests = true;
-    public bool NpmInstall;
+    public bool NpmInstall = true;
+    public bool IncludeExplicit;
     public string? Label;
     public bool FailOnErrors;
     public TimeSpan Timeout = TimeSpan.FromSeconds(600);
@@ -296,7 +301,9 @@ internal sealed class CliOptions
             {
                 case "--out": options.OutputDir = Next(args, ref i, "--out"); break;
                 case "--no-run": options.RunTests = false; break;
-                case "--npm-install": options.NpmInstall = true; break;
+                case "--npm-install": options.NpmInstall = true; break; // the default; kept for older scripts
+                case "--no-npm-install": options.NpmInstall = false; break;
+                case "--include-explicit": options.IncludeExplicit = true; break;
                 case "--label": options.Label = Next(args, ref i, "--label"); break;
                 case "--fail-on-errors": options.FailOnErrors = true; break;
                 case "--timeout":
