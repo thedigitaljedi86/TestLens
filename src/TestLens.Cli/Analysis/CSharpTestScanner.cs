@@ -53,7 +53,9 @@ public static partial class CSharpTestScanner
 
     private readonly record struct ParsedAttribute(string Name, string Args);
 
-    private readonly record struct ClassScope(int BraceDepth, bool Explicit, bool Ignore);
+    private readonly record struct ClassScope(int BraceDepth, bool Explicit, bool Ignore, bool NUnitExplicit, string? FullName);
+
+    private readonly record struct NamespaceScope(int BraceDepth, string Name);
 
     /// <summary>
     /// Walks the (comment- and string-stripped) code once, attributing each test
@@ -63,8 +65,13 @@ public static partial class CSharpTestScanner
     {
         int i = 0, depth = 0;
         var classes = new Stack<ClassScope>();
+        var namespaces = new Stack<NamespaceScope>();
         var attrs = new List<ParsedAttribute>();
-        (bool expl, bool ign)? pendingClass = null;
+        (bool expl, bool ign, bool nunitExpl, string? name)? pendingClass = null;
+        string? pendingNamespace = null;
+        string fileNamespace = "";
+        string? lastIdentifier = null;
+        bool expectClassName = false;
 
         while (i < code.Length)
         {
@@ -83,11 +90,20 @@ public static partial class CSharpTestScanner
             if (c == '{')
             {
                 depth++;
-                if (pendingClass is { } pc)
+                if (pendingNamespace is not null)
                 {
-                    classes.Push(new ClassScope(depth, pc.expl, pc.ign));
+                    namespaces.Push(new NamespaceScope(depth, pendingNamespace));
+                    pendingNamespace = null;
+                }
+                else if (pendingClass is { } pc)
+                {
+                    string? fullName = pc.name is null ? null
+                        : classes.Count > 0 ? (classes.Peek().FullName is { } outer ? outer + "+" + pc.name : null)
+                        : Qualify(fileNamespace, namespaces, pc.name);
+                    classes.Push(new ClassScope(depth, pc.expl, pc.ign, pc.nunitExpl, fullName));
                     pendingClass = null;
                 }
+                expectClassName = false;
                 i++;
                 continue;
             }
@@ -95,6 +111,7 @@ public static partial class CSharpTestScanner
             if (c == '}')
             {
                 if (classes.Count > 0 && classes.Peek().BraceDepth == depth) classes.Pop();
+                if (namespaces.Count > 0 && namespaces.Peek().BraceDepth == depth) namespaces.Pop();
                 if (depth > 0) depth--;
                 i++;
                 continue;
@@ -102,7 +119,7 @@ public static partial class CSharpTestScanner
 
             if (c == '(')
             {
-                CommitDeclaration(attrs, classes, counts);
+                CommitDeclaration(attrs, classes, lastIdentifier, counts);
                 attrs.Clear();
                 i = SkipBalanced(code, i);
                 continue;
@@ -111,6 +128,8 @@ public static partial class CSharpTestScanner
             if (c == ';')
             {
                 // End of a statement, field, or a bodyless type (e.g. `record R(...);`).
+                if (pendingNamespace is not null) fileNamespace = pendingNamespace; // `namespace A.B;`
+                pendingNamespace = null;
                 pendingClass = null;
                 attrs.Clear();
                 i++;
@@ -125,15 +144,31 @@ public static partial class CSharpTestScanner
 
                 if (word is "class" or "struct" or "record")
                 {
-                    pendingClass = (AnyExplicit(attrs), AnyIgnore(attrs));
+                    // `record class X` reuses the attributes already taken by `record`.
+                    if (!expectClassName) pendingClass = (AnyExplicit(attrs), AnyIgnore(attrs), AnyNUnitExplicit(attrs), null);
+                    expectClassName = true;
                     attrs.Clear();
                 }
-                else if (word is "interface" or "enum" or "namespace" or "delegate")
+                else if (word is "namespace")
+                {
+                    while (i < code.Length && char.IsWhiteSpace(code[i])) i++;
+                    int nameStart = i;
+                    while (i < code.Length && (char.IsLetterOrDigit(code[i]) || code[i] is '_' or '.' or '@')) i++;
+                    pendingNamespace = code[nameStart..i].Replace("@", "");
+                    attrs.Clear();
+                }
+                else if (word is "interface" or "enum" or "delegate")
                 {
                     // Not a test-bearing type scope; drop any attributes that preceded it.
                     attrs.Clear();
                 }
+                else if (expectClassName && pendingClass is { } pc)
+                {
+                    pendingClass = pc with { name = word.ToString() };
+                    expectClassName = false;
+                }
                 // Otherwise a modifier / return type / identifier: keep accumulating attributes.
+                lastIdentifier = word.ToString();
                 continue;
             }
 
@@ -141,7 +176,8 @@ public static partial class CSharpTestScanner
         }
     }
 
-    private static void CommitDeclaration(List<ParsedAttribute> attrs, Stack<ClassScope> classes, DiscoveryCounts counts)
+    private static void CommitDeclaration(List<ParsedAttribute> attrs, Stack<ClassScope> classes, string? methodName,
+        DiscoveryCounts counts)
     {
         int testCount = 0;
         foreach (var a in attrs)
@@ -158,7 +194,37 @@ public static partial class CSharpTestScanner
 
         counts.Total += testCount;
         if (ignore) counts.Ignored += testCount;
-        else if (expl) counts.Explicit += testCount;
+        else if (expl)
+        {
+            counts.Explicit += testCount;
+            RecordNUnitExplicitSelector(attrs, classes, methodName, counts);
+        }
+    }
+
+    /// <summary>
+    /// NUnit only runs an [Explicit] test when a filter names it (or its fixture)
+    /// directly, so remember a where-clause selector for each one.
+    /// </summary>
+    private static void RecordNUnitExplicitSelector(List<ParsedAttribute> attrs, Stack<ClassScope> classes,
+        string? methodName, DiscoveryCounts counts)
+    {
+        if (classes.Count == 0 || classes.Peek().FullName is not { } className) return;
+
+        if (classes.Peek().NUnitExplicit)
+            counts.NUnitExplicitSelectors.Add($"class == '{className}'");
+        else if (AnyNUnitExplicit(attrs) && methodName is not null)
+            counts.NUnitExplicitSelectors.Add($"test == '{className}.{methodName}'");
+    }
+
+    private static bool AnyNUnitExplicit(List<ParsedAttribute> attrs) => attrs.Exists(a => a.Name == "Explicit");
+
+    private static string Qualify(string fileNamespace, Stack<NamespaceScope> namespaces, string name)
+    {
+        var parts = new List<string>();
+        if (fileNamespace.Length > 0) parts.Add(fileNamespace);
+        parts.AddRange(namespaces.Reverse().Select(n => n.Name));
+        parts.Add(name);
+        return string.Join('.', parts);
     }
 
     private static bool AnyIgnore(List<ParsedAttribute> attrs)

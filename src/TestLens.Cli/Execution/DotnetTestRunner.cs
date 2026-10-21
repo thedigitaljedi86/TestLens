@@ -7,20 +7,52 @@ namespace TestLens.Execution;
 /// <summary>Runs `dotnet test` for a C# test project and parses the TRX result file.</summary>
 public static class DotnetTestRunner
 {
-    public static ExecutionResult Run(string projectDir, TimeSpan timeout)
+    /// <summary>
+    /// Runs the suite. With <paramref name="includeExplicit"/> explicit tests are run too:
+    /// xUnit v3 through its <c>xUnit.Explicit</c> setting, NUnit through a second pass that
+    /// selects only the explicit tests (NUnit skips them whenever the filter also matches
+    /// a regular test).
+    /// </summary>
+    public static ExecutionResult Run(string projectDir, TimeSpan timeout, bool includeExplicit = false,
+        IReadOnlyCollection<string>? nunitExplicitSelectors = null)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var execution = RunOnce(projectDir, includeExplicit ? "-- xUnit.Explicit=on" : "", timeout, stopwatch);
+
+        if (execution.Status == "completed" && includeExplicit && nunitExplicitSelectors is { Count: > 0 })
+        {
+            var where = string.Join(" || ", nunitExplicitSelectors);
+            var explicitRun = RunOnce(projectDir, $"--no-build -- \"NUnit.Where={where}\"", timeout, stopwatch);
+            if (explicitRun.Status == "completed")
+            {
+                // The first TRX lists the explicit tests as not executed (skipped); move them over.
+                int executed = explicitRun.Passed + explicitRun.Failed;
+                execution.Passed += explicitRun.Passed;
+                execution.Failed += explicitRun.Failed;
+                execution.Skipped = Math.Max(0, execution.Skipped - executed);
+            }
+            else
+            {
+                execution.Error = $"Explicit tests could not be run: {explicitRun.Error}";
+            }
+        }
+
+        execution.DurationMs = stopwatch.ElapsedMilliseconds;
+        return execution;
+    }
+
+    private static ExecutionResult RunOnce(string projectDir, string extraArgs, TimeSpan timeout, Stopwatch stopwatch)
     {
         var resultsDir = Path.Combine(Path.GetTempPath(), "testlens-trx-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(resultsDir);
 
-        var stopwatch = Stopwatch.StartNew();
         try
         {
             var result = ProcessRunner.Run(
                 "dotnet",
-                $"test --nologo --verbosity quiet --logger trx --results-directory \"{resultsDir}\"",
+                $"test --nologo --verbosity quiet --logger trx --results-directory \"{resultsDir}\" {extraArgs}".TrimEnd(),
                 projectDir,
                 timeout);
-            stopwatch.Stop();
 
             if (result.TimedOut)
                 return Error($"Timed out after {timeout.TotalSeconds:0}s", stopwatch);
@@ -32,9 +64,7 @@ public static class DotnetTestRunner
                 return Error($"dotnet test produced no results (exit {result.ExitCode}). {detail}", stopwatch);
             }
 
-            var execution = ParseTrx(trxFile);
-            execution.DurationMs = stopwatch.ElapsedMilliseconds;
-            return execution;
+            return ParseTrx(trxFile);
         }
         finally
         {

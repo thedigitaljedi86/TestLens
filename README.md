@@ -101,7 +101,13 @@ that fixture — TestLens attributes them all, not just the single attribute.
 Execution uses each ecosystem's native runner (`dotnet test` with TRX,
 `vitest`/`jest` with JSON reporters, `playwright test` with the JSON reporter,
 `ng test` for Karma) and parses the real results — passed, failed and skipped
-per project.
+per project. JS projects without `node_modules` get their dependencies installed
+first (`npm ci` when there is a lockfile, otherwise `npm install`).
+
+Explicit C# tests are counted but, like in `dotnet test`, not run by default —
+they are often slow or talk to real systems. Pass `--include-explicit` to run
+them too (NUnit `[Explicit]` via a second, explicit-only pass; xUnit v3
+`Explicit = true` via `xUnit.Explicit=on`).
 
 ## Commands & options
 
@@ -115,7 +121,8 @@ testlens demo [--out <dir>]           Generate a demo report with sample data
 Options:
   --out <dir>        Output directory (default: <directory>/.testlens)
   --no-run           Static analysis only - don't execute any tests
-  --npm-install      Run 'npm install' for JS projects missing node_modules
+  --no-npm-install   Don't install dependencies for JS projects missing node_modules
+  --include-explicit Also run explicit C# tests (NUnit [Explicit], xUnit v3 Explicit = true)
   --label <text>     Attach a label to this run (shown in the report timeline)
   --timeout <sec>    Per-project test run timeout (default: 600)
   --fail-on-errors   Exit code 1 when tests fail or a runner errors (for CI)
@@ -146,7 +153,7 @@ archive if you want the history shared.
 - name: TestLens scan
   run: |
     dotnet tool install --global TestLens
-    testlens . --npm-install --label "build ${{ github.run_number }}"
+    testlens . --label "build ${{ github.run_number }}"
 
 - name: Upload report
   uses: actions/upload-artifact@v4
@@ -168,7 +175,7 @@ ignored, explicit and commented-out tests:
 ```bash
 git clone https://github.com/thedigitaljedi86/TestLens.git
 cd TestLens
-dotnet run --project src/TestLens.Cli -- scan samples --npm-install
+dotnet run --project src/TestLens.Cli -- scan samples
 # open samples/.testlens/index.html
 ```
 

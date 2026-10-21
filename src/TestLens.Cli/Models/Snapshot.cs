@@ -35,6 +35,9 @@ public sealed class DiscoveryCounts
     [JsonPropertyName("explicit")] public int Explicit { get; set; }
     [JsonPropertyName("commentedOut")] public int CommentedOut { get; set; }
     [JsonPropertyName("files")] public int Files { get; set; }
+
+    /// <summary>NUnit where-clauses selecting the explicit tests, used to run them on request.</summary>
+    [JsonIgnore] public SortedSet<string> NUnitExplicitSelectors { get; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>Result of actually executing the project's test suite.</summary>
