@@ -14,15 +14,15 @@ public static partial class JsTestRunner
     private static string Npx => OperatingSystem.IsWindows() ? "npx.cmd" : "npx";
     private static string Npm => OperatingSystem.IsWindows() ? "npm.cmd" : "npm";
 
-    public static ExecutionResult Run(string projectDir, string framework, TimeSpan timeout)
+    public static ExecutionResult Run(string projectDir, string framework, TimeSpan timeout, bool installDependencies = true)
     {
         if (!Directory.Exists(Path.Combine(projectDir, "node_modules")))
         {
-            return new ExecutionResult
-            {
-                Status = "error",
-                Error = "node_modules is missing - run 'npm install' (or pass --npm-install) so the test suite can be executed.",
-            };
+            var installError = installDependencies
+                ? InstallDependencies(projectDir, timeout)
+                : "node_modules is missing - run 'npm install' (or drop --no-npm-install) so the test suite can be executed.";
+            if (installError is not null)
+                return new ExecutionResult { Status = "error", Error = installError };
         }
 
         return framework switch
@@ -33,6 +33,28 @@ public static partial class JsTestRunner
             "karma-jasmine" => RunKarma(projectDir, timeout),
             _ => RunNpmTest(projectDir, timeout),
         };
+    }
+
+    /// <summary>
+    /// Installs the project's dependencies: `npm ci` when a lockfile exists (it leaves the
+    /// lockfile untouched), falling back to `npm install`. Returns an error message, or null.
+    /// </summary>
+    private static string? InstallDependencies(string projectDir, TimeSpan timeout)
+    {
+        ProcessResult? result = null;
+        if (File.Exists(Path.Combine(projectDir, "package-lock.json")))
+            result = ProcessRunner.Run(Npm, "ci --no-audit --no-fund", projectDir, timeout);
+        if (result is null || (result.ExitCode != 0 && !result.TimedOut))
+            result = ProcessRunner.Run(Npm, "install --no-audit --no-fund", projectDir, timeout);
+
+        if (result.TimedOut)
+            return $"npm install timed out after {timeout.TotalSeconds:0}s";
+        if (result.ExitCode != 0 || !Directory.Exists(Path.Combine(projectDir, "node_modules")))
+        {
+            var detail = DotnetTestRunner.Truncate(result.Stderr.Length > 0 ? result.Stderr : result.Stdout, 800);
+            return $"npm install failed (exit {result.ExitCode}). {detail}";
+        }
+        return null;
     }
 
     /// <summary>
