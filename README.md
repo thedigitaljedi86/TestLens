@@ -31,12 +31,6 @@ is moving.
 
 </details>
 
-<details>
-<summary><b>🎨 …or with the violet accent theme</b></summary>
-
-![TestLens report, violet accent on dark](https://raw.githubusercontent.com/thedigitaljedi86/TestLens/main/docs/assets/report-violet-dark.png)
-
-</details>
 
 ## Why TestLens?
 
@@ -51,8 +45,9 @@ of `[Ignore]` and `it.skip`. TestLens gives you:
   last run, most failing — friendly competition included
 - 🧹 **The honest numbers** — ignored, explicit and commented-out tests are
   counted and trended, not swept under the rug
-- 🎨 **Enterprise-grade report** — themes, dark mode, smooth curved trend lines,
-  and everything in a single HTML file you can mail, host or archive
+- 🎨 **Dashboard-style report** — gradient headline cards, a purple accent and
+  the Ubuntu typeface (embedded), dark mode, smooth curved trend lines, and
+  everything in a single HTML file you can mail, host or archive
 
 ## Installation
 
@@ -140,8 +135,8 @@ from disk, mail it to your team lead, or publish it from CI as a build artifact.
   by clicking its row
 - **Stat tiles** — each with a delta vs. the previous run and a sparkline
 - **Highlights** — the top-scorer cards for the selected run
-- **Themes** — light, dark or follow-the-OS, plus three accent colors; your
-  choice is remembered
+- **Themes** — light, dark or follow-the-OS, with colour-blind-safe chart
+  colours; your choice is remembered
 
 History lives next to the report as one small JSON file per run
 (`.testlens/history/run-*.json`) — plain, diffable, and easy to commit or

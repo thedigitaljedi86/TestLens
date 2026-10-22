@@ -16,7 +16,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>testlens</ToolCommandName>
     <PackageId>TestLens</PackageId>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Authors>IT Performance ApS</Authors>
     <Company>IT Performance ApS</Company>
     <Description>Discover, run and track automated tests across C#, Vue and Angular projects. Generates a beautiful self-contained HTML report with full run history, trends and highlights.</Description>
@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Report/Assets/report.html" />
+    <EmbeddedResource Include="Report/Assets/fonts/*.woff2" LogicalName="TestLens.Fonts.%(Filename)%(Extension)" />
     <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
