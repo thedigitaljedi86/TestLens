@@ -155,6 +155,19 @@ public class ReportGeneratorTests : IDisposable
     }
 
     [Fact]
+    public void Embeds_the_fonts_so_the_report_works_offline()
+    {
+        var path = ReportGenerator.Generate(DemoData.Generate("x"), _out, "x");
+        var html = File.ReadAllText(path);
+
+        Assert.DoesNotContain("__TESTLENS_FONTS__", html);
+        Assert.Equal(3, html.Split("@font-face").Length - 1);
+        Assert.Contains("font-family: \"Ubuntu\"", html);
+        Assert.Contains("data:font/woff2;base64,", html);
+        Assert.DoesNotContain("fonts.googleapis.com", html);
+    }
+
+    [Fact]
     public void Demo_data_is_consistent()
     {
         var runs = DemoData.Generate("x");
