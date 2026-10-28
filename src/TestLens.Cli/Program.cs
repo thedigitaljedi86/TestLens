@@ -264,7 +264,7 @@ internal static class Program
               --no-npm-install   Don't install dependencies for JS projects missing node_modules
                                  (by default 'npm ci'/'npm install' runs first)
               --include-explicit Also run explicit C# tests (NUnit [Explicit], xUnit v3 Explicit = true)
-              --label <text>     Attach a label to this run (shown in the report timeline)
+              --label <text>     Attach a label to this run (shown instead of the run date in the report)
               --timeout <sec>    Per-project test run timeout (default: 600)
               --fail-on-errors   Exit code 1 when tests fail or a runner errors (for CI)
               -v, --version      Print version

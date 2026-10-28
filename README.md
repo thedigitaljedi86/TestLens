@@ -45,9 +45,9 @@ of `[Ignore]` and `it.skip`. TestLens gives you:
   last run, most failing — friendly competition included
 - 🧹 **The honest numbers** — ignored, explicit and commented-out tests are
   counted and trended, not swept under the rug
-- 🎨 **Dashboard-style report** — gradient headline cards, a purple accent and
-  the Ubuntu typeface (embedded), dark mode, smooth curved trend lines, and
-  everything in a single HTML file you can mail, host or archive
+- 🎨 **Clean, professional report** — a calm, neutral layout with system fonts,
+  dark mode, smooth curved trend lines, and everything in a single HTML file
+  you can mail, host or archive
 
 ## Installation
 
@@ -118,7 +118,7 @@ Options:
   --no-run           Static analysis only - don't execute any tests
   --no-npm-install   Don't install dependencies for JS projects missing node_modules
   --include-explicit Also run explicit C# tests (NUnit [Explicit], xUnit v3 Explicit = true)
-  --label <text>     Attach a label to this run (shown in the report timeline)
+  --label <text>     Attach a label to this run (shown instead of the run date in the report)
   --timeout <sec>    Per-project test run timeout (default: 600)
   --fail-on-errors   Exit code 1 when tests fail or a runner errors (for CI)
 ```
